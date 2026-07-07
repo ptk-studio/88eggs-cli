@@ -25,7 +25,7 @@ type Job = {
   project_id: string;
   created_by: string;
   parameters: Record<string, unknown>;
-  status: "queued" | "running" | "succeeded" | "failed";
+  status: "queued" | "accepted" | "running" | "succeeded" | "failed";
   error: string | null;
   cost_usd: number | null;
   result_media_id: string | null;
