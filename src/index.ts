@@ -16,7 +16,7 @@ import {
   unlikeMedia,
 } from "./commands/media.js";
 import { listWorkflows, runWorkflow, showWorkflow } from "./commands/workflows.js";
-import { jobStatus, listJobs } from "./commands/jobs.js";
+import { listRuns, runStatus } from "./commands/runs.js";
 
 const program = new Command();
 
@@ -143,22 +143,22 @@ workflows
     runWorkflow(slug, options),
   );
 
-const jobs = program.command("jobs").description("Check on workflow runs");
+const runs = program.command("runs").description("Check on workflow runs");
 
-jobs
+runs
   .command("list")
-  .description("List jobs (every accessible project, or one with --project)")
+  .description("List runs (every accessible project, or one with --project)")
   .option("--project <projectId>", "limit to one project")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
   .action((options: { project?: string; page?: string; limit?: string }) =>
-    listJobs(options),
+    listRuns(options),
   );
 
-jobs
-  .command("status <jobId>")
-  .description("One job's status (for polling)")
+runs
+  .command("status <runId>")
+  .description("One run's status (for polling), with its jobs")
   .allowUnknownOption()
-  .action((jobId: string) => jobStatus(jobId));
+  .action((runId: string) => runStatus(runId));
 
 program.parseAsync(process.argv);

@@ -19,7 +19,7 @@ type WorkflowSummary = {
 
 type WorkflowDetail = WorkflowSummary & { parameters: WorkflowParameter[] };
 
-type Job = {
+type Run = {
   id: string;
   workflow_id: string;
   project_id: string;
@@ -27,8 +27,6 @@ type Job = {
   parameters: Record<string, unknown>;
   status: "queued" | "accepted" | "running" | "succeeded" | "failed";
   error: string | null;
-  cost_usd: number | null;
-  result_media_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -135,7 +133,7 @@ export async function runWorkflow(
     parameters[param.name] = param.name in overrides ? overrides[param.name] : param.default;
   }
 
-  const job = await handleApiResponse<Job>(
+  const run = await handleApiResponse<Run>(
     apiFetch(`/workflows/${workflow.id}/runs`, {
       method: "POST",
       body: JSON.stringify({
@@ -144,10 +142,10 @@ export async function runWorkflow(
       }),
     }),
   );
-  if (!job) {
+  if (!run) {
     return;
   }
 
-  console.log(`Job ${job.id} ${job.status} (workflow: ${slug}, project: ${job.project_id}).`);
-  console.log(`Check status with \`88eggs jobs status ${job.id}\`.`);
+  console.log(`Run ${run.id} ${run.status} (workflow: ${slug}, project: ${run.project_id}).`);
+  console.log(`Check status with \`88eggs runs status ${run.id}\`.`);
 }
