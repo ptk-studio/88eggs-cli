@@ -29,6 +29,20 @@ rainbow whoami           # show the currently signed-in account
 rainbow projects list    # list your projects (--scope mine|shared|all)
 ```
 
+## Using this with an agent
+
+Install [`rainbow-skills`](https://github.com/ptk-studio/rainbow-skills)
+to let an agent (Claude Code, etc.) drive this CLI on your behalf:
+
+```bash
+npx skills add ptk-studio/rainbow-skills --skill list-projects
+```
+
+The skill checks `rainbow whoami` first and only runs `rainbow login`
+after asking you — since that opens your browser for a real Google
+sign-in — so `rainbow-cli` still needs to be installed and on your
+`PATH` (see **Install** above) before the skill can do anything.
+
 ## How auth works
 
 `rainbow login` runs a real OAuth flow against the same Supabase project
