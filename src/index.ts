@@ -16,7 +16,7 @@ import {
   unlikeMedia,
 } from "./commands/media.js";
 import { listWorkflows, runWorkflow, showWorkflow } from "./commands/workflows.js";
-import { jobStatus } from "./commands/jobs.js";
+import { jobStatus, listJobs } from "./commands/jobs.js";
 
 const program = new Command();
 
@@ -144,6 +144,16 @@ workflows
   );
 
 const jobs = program.command("jobs").description("Check on workflow runs");
+
+jobs
+  .command("list")
+  .description("List jobs (every accessible project, or one with --project)")
+  .option("--project <projectId>", "limit to one project")
+  .option("--page <page>", "page number")
+  .option("--limit <limit>", "page size")
+  .action((options: { project?: string; page?: string; limit?: string }) =>
+    listJobs(options),
+  );
 
 jobs
   .command("status <jobId>")
