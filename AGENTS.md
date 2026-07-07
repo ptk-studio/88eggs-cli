@@ -1,7 +1,7 @@
-# Agent guidelines — rainbow-cli
+# Agent guidelines — 88eggs-cli
 
-A small **TypeScript** Node CLI (`commander`) that signs in to Rainbow's
-existing Supabase project and calls `rainbow-backend`. See `README.md`
+A small **TypeScript** Node CLI (`commander`) that signs in to 88eggs'
+existing Supabase project and calls `88eggs-backend`. See `README.md`
 for the auth flow design before making non-trivial changes.
 
 ## TypeScript
@@ -17,18 +17,18 @@ for the auth flow design before making non-trivial changes.
 
 ## Authentication
 
-- `rainbow login` is the **only** place that talks to Supabase's OAuth
-  endpoints directly. Every other command reads `~/.rainbow/credentials.json`
+- `88eggs login` is the **only** place that talks to Supabase's OAuth
+  endpoints directly. Every other command reads `~/.88eggs/credentials.json`
   via `src/lib/credentials.ts` and calls the backend via
   `apiFetch()` (`src/lib/api.ts`), which handles refresh-on-near-expiry
   itself — don't reimplement token handling in a new command.
 - Never print the raw access or refresh token to stdout/stderr, and
   never add a flag that would. If a user needs to debug their session,
-  point them at `rainbow whoami` (email only) or the credentials file's
+  point them at `88eggs whoami` (email only) or the credentials file's
   existence/permissions, not its contents.
-- `~/.rainbow/credentials.json` must stay mode `600` — `saveCredentials()`
+- `~/.88eggs/credentials.json` must stay mode `600` — `saveCredentials()`
   already sets this; don't add a second write path that skips it.
-- `RAINBOW_CONFIG_DIR` env var override exists purely for tests — don't
+- `EGGS_CONFIG_DIR` env var override exists purely for tests — don't
   repurpose it as a user-facing multi-account feature without thinking
   through what that actually needs (separate credential files, a
   `--profile` flag, etc. — real design work, not a side effect of a test
@@ -50,11 +50,11 @@ for the auth flow design before making non-trivial changes.
 - Test runner is **Vitest**. Colocate tests (`src/lib/foo.ts` →
   `src/lib/foo.test.ts`).
 - What's realistically testable: `credentials.ts` (real file I/O against
-  a temp dir via `RAINBOW_CONFIG_DIR`) and `api.ts` (token-refresh
+  a temp dir via `EGGS_CONFIG_DIR`) and `api.ts` (token-refresh
   branching, with `credentials.ts`/`supabase-client.ts` mocked).
 - What isn't: the actual OAuth round-trip in `login.ts` (no meaningful
   way to fake a real Google consent screen) — verify that manually
-  (`rainbow login` against a real account) after any change to
+  (`88eggs login` against a real account) after any change to
   `login.ts`, don't assume it still works from the unit-testable parts
   passing.
 
@@ -65,6 +65,6 @@ for the auth flow design before making non-trivial changes.
   starts; a build can succeed while `index.ts`'s command wiring is
   broken.
 - If a change touches `login.ts`, `api.ts`, or `credentials.ts`, do a
-  real manual pass (`rainbow login`, `rainbow whoami`,
-  `rainbow projects list`, `rainbow logout`) — this is the one part of
+  real manual pass (`88eggs login`, `88eggs whoami`,
+  `88eggs projects list`, `88eggs logout`) — this is the one part of
   the codebase that can't be verified by the test suite alone.

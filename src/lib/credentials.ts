@@ -9,8 +9,8 @@ export type Credentials = {
   email: string;
 };
 
-// Overridable so tests don't touch a real developer's ~/.rainbow.
-const CONFIG_DIR = process.env.RAINBOW_CONFIG_DIR ?? join(homedir(), ".rainbow");
+// Overridable so tests don't touch a real developer's ~/.88eggs.
+const CONFIG_DIR = process.env.EGGS_CONFIG_DIR ?? join(homedir(), ".88eggs");
 const CREDENTIALS_PATH = join(CONFIG_DIR, "credentials.json");
 
 export async function saveCredentials(credentials: Credentials): Promise<void> {

@@ -7,7 +7,7 @@ import { listProjects } from "./commands/projects.js";
 
 const program = new Command();
 
-program.name("rainbow").description("CLI for Rainbow").version("0.1.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.1.0");
 
 program
   .command("login")
@@ -24,7 +24,7 @@ program
   .description("Show the currently signed-in account")
   .action(whoami);
 
-const projects = program.command("projects").description("Manage Rainbow projects");
+const projects = program.command("projects").description("Manage 88eggs projects");
 
 projects
   .command("list")

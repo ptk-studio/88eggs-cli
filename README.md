@@ -1,53 +1,61 @@
-# rainbow-cli
+# 88eggs-cli
 
-CLI for [Rainbow](https://github.com/thomaskwan/rainbow-frontend). Signs
-in with your Google account (the same one you'd use on the Rainbow
+CLI for [88eggs](https://github.com/thomaskwan/88eggs-frontend). Signs
+in with your Google account (the same one you'd use on the 88eggs
 frontend) and talks to
-[`rainbow-backend`](https://github.com/thomaskwan/rainbow-backend) on
+[`88eggs-backend`](https://github.com/thomaskwan/88eggs-backend) on
 your behalf.
 
-This exists so [`rainbow-skills`](https://github.com/ptk-studio/rainbow-skills)
+This exists so [`88eggs-skills`](https://github.com/ptk-studio/88eggs-skills)
 has something to drive, mirroring how `vercel-labs/agent-skills`' deploy
 skill drives the `vercel` CLI and `supabase/agent-skills` drives the
-`supabase` CLI — a skill shells out to `rainbow`, `rainbow` owns its own
+`supabase` CLI — a skill shells out to `88eggs`, `88eggs` owns its own
 login, and no skill ever handles a raw token itself.
 
 ## Install
 
+Published on npm as [`88eggs-cli`](https://www.npmjs.com/package/88eggs-cli):
+
+```bash
+npm install -g 88eggs-cli
+```
+
+Or from source, for local development on the CLI itself:
+
 ```bash
 pnpm install
 pnpm build
-npm link   # makes the `rainbow` command available globally
+npm link   # makes the `88eggs` command available globally
 ```
 
 ## Commands
 
 ```bash
-rainbow login           # sign in with Google via your browser
-rainbow logout          # sign out, remove stored credentials
-rainbow whoami           # show the currently signed-in account
-rainbow projects list    # list your projects (--scope mine|shared|all)
+88eggs login           # sign in with Google via your browser
+88eggs logout          # sign out, remove stored credentials
+88eggs whoami           # show the currently signed-in account
+88eggs projects list    # list your projects (--scope mine|shared|all)
 ```
 
 ## Using this with an agent
 
-Install [`rainbow-skills`](https://github.com/ptk-studio/rainbow-skills)
+Install [`88eggs-skills`](https://github.com/ptk-studio/88eggs-skills)
 to let an agent (Claude Code, etc.) drive this CLI on your behalf:
 
 ```bash
-npx skills add ptk-studio/rainbow-skills --skill list-projects
+npx skills add ptk-studio/88eggs-skills --skill list-projects
 ```
 
-The skill checks `rainbow whoami` first and only runs `rainbow login`
+The skill checks `88eggs whoami` first and only runs `88eggs login`
 after asking you — since that opens your browser for a real Google
-sign-in — so `rainbow-cli` still needs to be installed and on your
+sign-in — so `88eggs-cli` still needs to be installed and on your
 `PATH` (see **Install** above) before the skill can do anything.
 
 ## How auth works
 
-`rainbow login` runs a real OAuth flow against the same Supabase project
-`rainbow-backend`/`rainbow-frontend` already use — there's no separate
-Rainbow-specific auth server, and no new backend feature was needed for
+`88eggs login` runs a real OAuth flow against the same Supabase project
+`88eggs-backend`/`88eggs-frontend` already use — there's no separate
+88eggs-specific auth server, and no new backend feature was needed for
 this to work:
 
 1. Opens your browser to Supabase's `/auth/v1/authorize?provider=google`
@@ -59,12 +67,12 @@ this to work:
 3. Supabase redirects back to the local server with an authorization
    code; the CLI exchanges it for a real session (access + refresh
    token) via Supabase's PKCE flow.
-4. The session is written to `~/.rainbow/credentials.json` (mode `600`)
+4. The session is written to `~/.88eggs/credentials.json` (mode `600`)
    — never printed, never handled by anything other than this file.
 
 Every other command reads that file, refreshing the access token via
 the stored refresh token when it's near expiry, and calls
-`rainbow-backend` with it as a normal `Authorization: Bearer` header —
+`88eggs-backend` with it as a normal `Authorization: Bearer` header —
 exactly what the frontend already sends, just from a CLI instead of a
 browser tab. `requireUser()` on the backend doesn't know or care which
 one it came from.
@@ -84,20 +92,21 @@ dashboard.
 
 ## Local development
 
-Point the CLI at a local Supabase + local `rainbow-backend` instead of
-production:
+Point the CLI at a local Supabase + local `88eggs-backend` instead of
+production. Env vars are prefixed `EGGS_`, not `88EGGS_` — shell env var
+names can't start with a digit:
 
 ```bash
-RAINBOW_SUPABASE_URL=http://127.0.0.1:54321 \
-RAINBOW_SUPABASE_PUBLISHABLE_KEY=<local anon/publishable key> \
-RAINBOW_API_URL=http://localhost:3000 \
-rainbow login
+EGGS_SUPABASE_URL=http://127.0.0.1:54321 \
+EGGS_SUPABASE_PUBLISHABLE_KEY=<local anon/publishable key> \
+EGGS_API_URL=http://localhost:3000 \
+88eggs login
 ```
 
 Local Supabase has Google sign-in **disabled by default**
 (`supabase/config.toml`'s `[auth.external.google]` block) — enable it
 with real (or test) OAuth credentials first, same as any other local
-Google sign-in testing against `rainbow-backend`.
+Google sign-in testing against `88eggs-backend`.
 
 ## Testing
 
@@ -108,7 +117,7 @@ pnpm lint
 ```
 
 The OAuth round-trip itself isn't unit-tested (there's no meaningful way
-to fake a real Google consent) — verified manually via `rainbow login`
+to fake a real Google consent) — verified manually via `88eggs login`
 against production, confirming the credentials file is written
-correctly and `rainbow projects list` successfully calls the real API
+correctly and `88eggs projects list` successfully calls the real API
 afterward.

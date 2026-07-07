@@ -5,7 +5,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./constants.js";
 // invocation is a fresh process anyway, so there's nothing worth
 // persisting via supabase-js's own storage. It only needs *some* backing
 // store to hold the PKCE code_verifier between signInWithOAuth() and
-// exchangeCodeForSession() within a single `rainbow login` run. Session
+// exchangeCodeForSession() within a single `88eggs login` run. Session
 // persistence across invocations is handled entirely by our own
 // credentials.json (see lib/credentials.ts), not by this client.
 function createMemoryStorage() {

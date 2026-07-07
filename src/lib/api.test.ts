@@ -31,7 +31,7 @@ describe("apiFetch", () => {
 
   it("throws a clear error when not signed in", async () => {
     loadCredentials.mockResolvedValue(null);
-    await expect(apiFetch("/projects")).rejects.toThrow("rainbow login");
+    await expect(apiFetch("/projects")).rejects.toThrow("88eggs login");
   });
 
   it("uses the stored access token without refreshing when it's not near expiry", async () => {
@@ -96,7 +96,7 @@ describe("apiFetch", () => {
       error: { message: "invalid refresh token" },
     });
 
-    await expect(apiFetch("/projects")).rejects.toThrow("rainbow login");
+    await expect(apiFetch("/projects")).rejects.toThrow("88eggs login");
   });
 });
 

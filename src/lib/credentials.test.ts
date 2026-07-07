@@ -8,13 +8,13 @@ describe("credentials", () => {
   let credentialsModule: typeof import("./credentials.js");
 
   beforeAll(async () => {
-    tmpDir = await mkdtemp(join(tmpdir(), "rainbow-cli-test-"));
-    process.env.RAINBOW_CONFIG_DIR = tmpDir;
+    tmpDir = await mkdtemp(join(tmpdir(), "88eggs-cli-test-"));
+    process.env.EGGS_CONFIG_DIR = tmpDir;
     credentialsModule = await import("./credentials.js");
   });
 
   afterAll(async () => {
-    delete process.env.RAINBOW_CONFIG_DIR;
+    delete process.env.EGGS_CONFIG_DIR;
     await rm(tmpDir, { recursive: true, force: true });
   });
 

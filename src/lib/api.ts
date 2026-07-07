@@ -8,7 +8,7 @@ import { BACKEND_API_URL } from "./constants.js";
 async function getAccessToken(): Promise<string> {
   const credentials = await loadCredentials();
   if (!credentials) {
-    throw new Error("Not signed in. Run `rainbow login` first.");
+    throw new Error("Not signed in. Run `88eggs login` first.");
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -23,7 +23,7 @@ async function getAccessToken(): Promise<string> {
 
   if (error || !data.session) {
     throw new Error(
-      `Session expired and refresh failed (${error?.message ?? "unknown error"}). Run \`rainbow login\` again.`,
+      `Session expired and refresh failed (${error?.message ?? "unknown error"}). Run \`88eggs login\` again.`,
     );
   }
 

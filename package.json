@@ -1,13 +1,21 @@
 {
-  "name": "rainbow-cli",
+  "name": "88eggs-cli",
   "version": "0.1.0",
-  "description": "CLI for Rainbow -- sign in and drive rainbow-backend from the command line.",
+  "description": "CLI for 88eggs -- sign in and drive 88eggs-backend from the command line.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ptk-studio/88eggs-cli.git"
+  },
+  "homepage": "https://github.com/ptk-studio/88eggs-cli#readme",
+  "bugs": "https://github.com/ptk-studio/88eggs-cli/issues",
   "type": "module",
   "bin": {
-    "rainbow": "./dist/index.js"
+    "88eggs": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",

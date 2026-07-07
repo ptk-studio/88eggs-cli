@@ -5,7 +5,7 @@ import { saveCredentials } from "../lib/credentials.js";
 import { LOGIN_CALLBACK_PORT, LOGIN_CALLBACK_URL } from "../lib/constants.js";
 
 const SUCCESS_HTML = `<!doctype html><html><body style="font-family: system-ui; text-align: center; padding: 4rem;">
-<h1>Signed in to Rainbow</h1><p>You can close this tab and return to your terminal.</p>
+<h1>Signed in to 88eggs</h1><p>You can close this tab and return to your terminal.</p>
 </body></html>`;
 
 const ERROR_HTML = (message: string) => `<!doctype html><html><body style="font-family: system-ui; text-align: center; padding: 4rem;">
