@@ -1,10 +1,9 @@
 # 88eggs-cli
 
-CLI for [88eggs](https://github.com/thomaskwan/88eggs-frontend). Signs
-in with your Google account (the same one you'd use on the 88eggs
-frontend) and talks to
-[`88eggs-backend`](https://github.com/thomaskwan/88eggs-backend) on
-your behalf.
+CLI for 88eggs. Signs in with your Google account (the same one you'd
+use on the 88eggs frontend) and talks to `88eggs-backend` on your
+behalf. (`88eggs-frontend`/`88eggs-backend` are private repos, not
+linked here.)
 
 This exists so [`88eggs-skills`](https://github.com/ptk-studio/88eggs-skills)
 has something to drive, mirroring how `vercel-labs/agent-skills`' deploy
