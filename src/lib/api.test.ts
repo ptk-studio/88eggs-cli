@@ -14,7 +14,7 @@ vi.mock("./supabase-client.js", () => ({
 
 const fetchMock = vi.fn();
 
-const { apiFetch, isErrorBody } = await import("./api.js");
+const { apiFetch, handleApiResponse, isErrorBody } = await import("./api.js");
 
 describe("apiFetch", () => {
   beforeEach(() => {
@@ -97,6 +97,56 @@ describe("apiFetch", () => {
     });
 
     await expect(apiFetch("/projects")).rejects.toThrow("88eggs login");
+  });
+});
+
+describe("handleApiResponse", () => {
+  const originalExitCode = process.exitCode;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    process.exitCode = undefined;
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    process.exitCode = originalExitCode;
+    errorSpy.mockRestore();
+  });
+
+  it("returns the parsed body on a 2xx response", async () => {
+    const result = await handleApiResponse<{ ok: boolean }>(
+      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
+    );
+    expect(result).toEqual({ ok: true });
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("prints the backend's error message and returns null on a non-2xx response", async () => {
+    const result = await handleApiResponse(
+      Promise.resolve(
+        new Response(JSON.stringify({ error: "Not found" }), { status: 404 }),
+      ),
+    );
+    expect(result).toBeNull();
+    expect(process.exitCode).toBe(1);
+    expect(errorSpy).toHaveBeenCalledWith("Error: Not found");
+  });
+
+  it("falls back to a generic message when the error body doesn't match the expected shape", async () => {
+    const result = await handleApiResponse(
+      Promise.resolve(new Response("not json", { status: 500 })),
+    );
+    expect(result).toBeNull();
+    expect(process.exitCode).toBe(1);
+    expect(errorSpy).toHaveBeenCalledWith("Error: Request failed with status 500");
+  });
+
+  it("prints the error and returns null when the fetch itself rejects", async () => {
+    const result = await handleApiResponse(Promise.reject(new Error("network down")));
+    expect(result).toBeNull();
+    expect(process.exitCode).toBe(1);
+    expect(errorSpy).toHaveBeenCalledWith("network down");
   });
 });
 

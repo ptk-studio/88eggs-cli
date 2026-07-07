@@ -1,4 +1,4 @@
-import { apiFetch, isErrorBody } from "../lib/api.js";
+import { apiFetch, handleApiResponse } from "../lib/api.js";
 
 type Project = {
   id: string;
@@ -15,27 +15,12 @@ type Project = {
 export async function listProjects(options: { scope?: "mine" | "shared" | "all" }): Promise<void> {
   const query = options.scope && options.scope !== "all" ? `?scope=${options.scope}` : "";
 
-  let response: Response;
-  try {
-    response = await apiFetch(`/projects${query}`);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : "Request failed.");
-    process.exitCode = 1;
+  const body = await handleApiResponse<{ projects: Project[] }>(apiFetch(`/projects${query}`));
+  if (!body) {
     return;
   }
 
-  const body: unknown = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message = isErrorBody(body)
-      ? body.error
-      : `Request failed with status ${response.status}`;
-    console.error(`Error: ${message}`);
-    process.exitCode = 1;
-    return;
-  }
-
-  const { projects } = body as { projects: Project[] };
+  const { projects } = body;
 
   if (projects.length === 0) {
     console.log("No projects found.");

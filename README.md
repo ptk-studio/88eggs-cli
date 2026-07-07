@@ -34,6 +34,23 @@ npm link   # makes the `88eggs` command available globally
 88eggs logout          # sign out, remove stored credentials
 88eggs whoami           # show the currently signed-in account
 88eggs projects list    # list your projects (--scope mine|shared|all)
+
+88eggs media list --project <projectId>   # list a project's media (--tag, --page, --limit)
+88eggs media liked                        # your liked media, across every accessible project
+88eggs media tags [--project <projectId>] # distinct tags (all accessible projects, or one)
+88eggs media show <mediaId>               # one item, incl. a signed URL
+88eggs media move <mediaId> <projectId>   # move to a different project
+88eggs media like <mediaId>                # like
+88eggs media unlike <mediaId>              # unlike
+88eggs media tag add <mediaId> <tag>       # add one tag
+88eggs media tag remove <mediaId> <tag>    # remove one tag
+
+88eggs workflows list                      # the workflow catalog
+88eggs workflows show <slug>               # one workflow's detail + parameter spec
+88eggs workflows run <slug> [--project <projectId>] [--param key=value ...]
+                                            # start a run; unset parameters use the workflow's
+                                            # own defaults; omit --project to use your oldest one
+88eggs jobs status <jobId>                 # poll a run's status
 ```
 
 ## Using this with an agent
