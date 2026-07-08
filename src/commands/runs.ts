@@ -20,6 +20,7 @@ type Run = {
   project_id: string;
   created_by: string;
   parameters: Record<string, unknown>;
+  name: string | null;
   status: "queued" | "accepted" | "running" | "succeeded" | "failed";
   error: string | null;
   created_at: string;
@@ -36,7 +37,8 @@ type RunListResponse = {
 };
 
 function formatRunLine(run: Run): string {
-  return `${run.id} -- ${run.status} -- workflow ${run.workflow_id} -- project ${run.project_id}`;
+  const name = run.name ? ` "${run.name}"` : "";
+  return `${run.id}${name} -- ${run.status} -- workflow ${run.workflow_id} -- project ${run.project_id}`;
 }
 
 // No project -> GET /runs (every accessible project); with one ->
@@ -76,6 +78,9 @@ export async function runStatus(runId: string): Promise<void> {
   }
 
   console.log(`Run: ${run.id}`);
+  if (run.name) {
+    console.log(`Name: ${run.name}`);
+  }
   console.log(`Workflow: ${run.workflow_id}`);
   console.log(`Project: ${run.project_id}`);
   console.log(`Status: ${run.status}`);

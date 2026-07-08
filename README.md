@@ -35,7 +35,7 @@ npm link   # makes the `88eggs` command available globally
 88eggs whoami           # show the currently signed-in account
 88eggs projects list    # list your projects (--scope mine|shared|all)
 
-88eggs media list --project <projectId>   # list a project's media (--tag, --page, --limit)
+88eggs media list --project <projectId>   # list a project's media (--tag, --run-name, --page, --limit)
 88eggs media liked                        # your liked media, across every accessible project
 88eggs media tags [--project <projectId>] # distinct tags (all accessible projects, or one)
 88eggs media show <mediaId>               # one item, incl. a signed URL
@@ -47,9 +47,10 @@ npm link   # makes the `88eggs` command available globally
 
 88eggs workflows list                      # the workflow catalog
 88eggs workflows show <slug>               # one workflow's detail + parameter spec
-88eggs workflows run <slug> [--project <projectId>] [--param key=value ...]
+88eggs workflows run <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
                                             # start a run; unset parameters use the workflow's
-                                            # own defaults; omit --project to use your oldest one
+                                            # own defaults; omit --project to use your oldest one;
+                                            # omit --name to get "<workflow name> <random word>"
 88eggs runs list [--project <projectId>]   # list runs (every accessible project, or one)
                                             # (--page, --limit)
 88eggs runs status <runId>                 # poll a run's status, with its jobs

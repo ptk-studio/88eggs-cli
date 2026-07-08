@@ -25,6 +25,7 @@ type Run = {
   project_id: string;
   created_by: string;
   parameters: Record<string, unknown>;
+  name: string | null;
   status: "queued" | "accepted" | "running" | "succeeded" | "failed";
   error: string | null;
   created_at: string;
@@ -108,7 +109,7 @@ function parseParamOverrides(pairs: string[]): Record<string, string> {
 
 export async function runWorkflow(
   slug: string,
-  options: { project?: string; param: string[] },
+  options: { project?: string; name?: string; param: string[] },
 ): Promise<void> {
   const workflow = await resolveWorkflowBySlug(slug);
   if (!workflow) {
@@ -138,6 +139,10 @@ export async function runWorkflow(
       method: "POST",
       body: JSON.stringify({
         projectId: options.project,
+        // Framework-level, not a workflow parameter -- omitted entirely
+        // (not sent as an empty string) so the backend applies its own
+        // "<workflow name> <random word>" default.
+        name: options.name,
         parameters,
       }),
     }),
@@ -146,6 +151,6 @@ export async function runWorkflow(
     return;
   }
 
-  console.log(`Run ${run.id} ${run.status} (workflow: ${slug}, project: ${run.project_id}).`);
+  console.log(`Run ${run.id} "${run.name}" ${run.status} (workflow: ${slug}, project: ${run.project_id}).`);
   console.log(`Check status with \`88eggs runs status ${run.id}\`.`);
 }

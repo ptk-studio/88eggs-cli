@@ -21,7 +21,7 @@ import { listEventTypes, listEvents } from "./commands/events.js";
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.2.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.3.0");
 
 program
   .command("login")
@@ -53,10 +53,17 @@ media
   .description("List a project's media")
   .requiredOption("--project <projectId>", "project to list media from")
   .option("--tag <tag>", "filter by tag")
+  .option("--run-name <runName>", "filter by (partial, case-insensitive) run name")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
-  .action((options: { project: string; tag?: string; page?: string; limit?: string }) =>
-    listMedia(options),
+  .action(
+    (options: {
+      project: string;
+      tag?: string;
+      runName?: string;
+      page?: string;
+      limit?: string;
+    }) => listMedia(options),
   );
 
 media
@@ -134,14 +141,16 @@ workflows
   .command("run <slug>")
   .description("Start a run (unset parameters fall back to the workflow's own defaults)")
   .option("--project <projectId>", "defaults to your oldest project if omitted")
+  .option("--name <name>", 'a label for the run (default: "<workflow name> <random word>")')
   .option(
     "--param <keyValue>",
     'a "key=value" parameter override, repeatable',
     (value: string, previous: string[]) => [...previous, value],
     [] as string[],
   )
-  .action((slug: string, options: { project?: string; param: string[] }) =>
-    runWorkflow(slug, options),
+  .action(
+    (slug: string, options: { project?: string; name?: string; param: string[] }) =>
+      runWorkflow(slug, options),
   );
 
 const runs = program.command("runs").description("Check on workflow runs");
