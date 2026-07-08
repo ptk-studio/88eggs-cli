@@ -58,6 +58,12 @@ for the auth flow design before making non-trivial changes.
   `login.ts`, don't assume it still works from the unit-testable parts
   passing.
 
+## Git workflow
+
+- Every change goes through a pull request — create a feature branch,
+  push it, open a PR, and merge through GitHub. Never commit directly
+  to `main`.
+
 ## Before committing
 
 - `pnpm typecheck`, `pnpm lint`, and `pnpm test` must pass.
