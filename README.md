@@ -50,7 +50,14 @@ npm link   # makes the `88eggs` command available globally
 88eggs workflows run <slug> [--project <projectId>] [--param key=value ...]
                                             # start a run; unset parameters use the workflow's
                                             # own defaults; omit --project to use your oldest one
-88eggs jobs status <jobId>                 # poll a run's status
+88eggs runs list [--project <projectId>]   # list runs (every accessible project, or one)
+                                            # (--page, --limit)
+88eggs runs status <runId>                 # poll a run's status, with its jobs
+
+88eggs events types                        # the known event types (run/job started/finished,
+                                            # media added)
+88eggs events list [--project <projectId>] # list events (every accessible project, or one)
+                                            # (--type <eventTypeKey>, --page, --limit)
 ```
 
 ## Using this with an agent

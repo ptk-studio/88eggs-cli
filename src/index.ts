@@ -17,6 +17,7 @@ import {
 } from "./commands/media.js";
 import { listWorkflows, runWorkflow, showWorkflow } from "./commands/workflows.js";
 import { listRuns, runStatus } from "./commands/runs.js";
+import { listEventTypes, listEvents } from "./commands/events.js";
 
 const program = new Command();
 
@@ -160,5 +161,24 @@ runs
   .description("One run's status (for polling), with its jobs")
   .allowUnknownOption()
   .action((runId: string) => runStatus(runId));
+
+const events = program.command("events").description("Browse the activity log (runs/jobs/media)");
+
+events
+  .command("types")
+  .description("List the known event types (run/job started/finished, media added)")
+  .action(() => listEventTypes());
+
+events
+  .command("list")
+  .description("List events (every accessible project, or one with --project)")
+  .option("--project <projectId>", "limit to one project")
+  .option("--type <eventTypeKey>", "filter to one event type (see `events types`)")
+  .option("--page <page>", "page number")
+  .option("--limit <limit>", "page size")
+  .action(
+    (options: { project?: string; type?: string; page?: string; limit?: string }) =>
+      listEvents(options),
+  );
 
 program.parseAsync(process.argv);
