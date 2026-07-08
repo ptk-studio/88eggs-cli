@@ -9,7 +9,7 @@ type Job = {
   status: "queued" | "running" | "succeeded" | "failed";
   error: string | null;
   cost_usd: number | null;
-  result_media_id: string | null;
+  result_asset_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -42,8 +42,8 @@ function formatRunLine(run: Run): string {
 }
 
 // No project -> GET /runs (every accessible project); with one ->
-// GET /projects/:projectId/runs -- same split as listMedia/
-// listLikedMedia above.
+// GET /projects/:projectId/runs -- same split as listAssets/
+// listLikedAssets above.
 export async function listRuns(options: {
   project?: string;
   page?: string;
@@ -93,9 +93,9 @@ export async function runStatus(runId: string): Promise<void> {
     console.log("Jobs:");
     for (const job of run.jobs) {
       const cost = job.cost_usd !== null ? ` -- $${job.cost_usd}` : "";
-      const media = job.result_media_id ? ` -- media ${job.result_media_id}` : "";
+      const asset = job.result_asset_id ? ` -- asset ${job.result_asset_id}` : "";
       const error = job.error ? ` -- ${job.error}` : "";
-      console.log(`  ${job.id} -- ${job.model} -- ${job.status}${cost}${media}${error}`);
+      console.log(`  ${job.id} -- ${job.model} -- ${job.status}${cost}${asset}${error}`);
     }
   }
 }

@@ -35,15 +35,15 @@ npm link   # makes the `88eggs` command available globally
 88eggs whoami           # show the currently signed-in account
 88eggs projects list    # list your projects (--scope mine|shared|all)
 
-88eggs media list --project <projectId>   # list a project's media (--tag, --run-name, --page, --limit)
-88eggs media liked                        # your liked media, across every accessible project
-88eggs media tags [--project <projectId>] # distinct tags (all accessible projects, or one)
-88eggs media show <mediaId>               # one item, incl. a signed URL
-88eggs media move <mediaId> <projectId>   # move to a different project
-88eggs media like <mediaId>                # like
-88eggs media unlike <mediaId>              # unlike
-88eggs media tag add <mediaId> <tag>       # add one tag
-88eggs media tag remove <mediaId> <tag>    # remove one tag
+88eggs assets list --project <projectId>   # list a project's assets (--tag, --run-name, --page, --limit)
+88eggs assets liked                        # your liked assets, across every accessible project
+88eggs assets tags [--project <projectId>] # distinct tags (all accessible projects, or one)
+88eggs assets show <assetId>               # one item, incl. a signed URL
+88eggs assets move <assetId> <projectId>   # move to a different project
+88eggs assets like <assetId>                # like
+88eggs assets unlike <assetId>              # unlike
+88eggs assets tag add <assetId> <tag>       # add one tag
+88eggs assets tag remove <assetId> <tag>    # remove one tag
 
 88eggs workflows list                      # the workflow catalog
 88eggs workflows show <slug>               # one workflow's detail + parameter spec
@@ -56,7 +56,7 @@ npm link   # makes the `88eggs` command available globally
 88eggs runs status <runId>                 # poll a run's status, with its jobs
 
 88eggs events types                        # the known event types (run/job started/finished,
-                                            # media added)
+                                            # asset added)
 88eggs events list [--project <projectId>] # list events (every accessible project, or one)
                                             # (--type <eventTypeKey>, --page, --limit)
 ```

@@ -5,23 +5,23 @@ import { logout } from "./commands/logout.js";
 import { whoami } from "./commands/whoami.js";
 import { listProjects } from "./commands/projects.js";
 import {
-  addMediaTag,
-  likeMedia,
-  listLikedMedia,
-  listMedia,
-  listMediaTags,
-  moveMedia,
-  removeMediaTag,
-  showMedia,
-  unlikeMedia,
-} from "./commands/media.js";
+  addAssetTag,
+  likeAsset,
+  listLikedAssets,
+  listAssets,
+  listAssetTags,
+  moveAsset,
+  removeAssetTag,
+  showAsset,
+  unlikeAsset,
+} from "./commands/assets.js";
 import { listWorkflows, runWorkflow, showWorkflow } from "./commands/workflows.js";
 import { listRuns, runStatus } from "./commands/runs.js";
 import { listEventTypes, listEvents } from "./commands/events.js";
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.3.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.4.0");
 
 program
   .command("login")
@@ -46,12 +46,12 @@ projects
   .option("--scope <scope>", "mine, shared, or all", "all")
   .action((options: { scope: "mine" | "shared" | "all" }) => listProjects(options));
 
-const media = program.command("media").description("Browse and manage media");
+const assets = program.command("assets").description("Browse and manage assets");
 
-media
+assets
   .command("list")
-  .description("List a project's media")
-  .requiredOption("--project <projectId>", "project to list media from")
+  .description("List a project's assets")
+  .requiredOption("--project <projectId>", "project to list assets from")
   .option("--tag <tag>", "filter by tag")
   .option("--run-name <runName>", "filter by (partial, case-insensitive) run name")
   .option("--page <page>", "page number")
@@ -63,21 +63,21 @@ media
       runName?: string;
       page?: string;
       limit?: string;
-    }) => listMedia(options),
+    }) => listAssets(options),
   );
 
-media
+assets
   .command("liked")
-  .description("List your liked media, across every accessible project")
+  .description("List your liked assets, across every accessible project")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
-  .action((options: { page?: string; limit?: string }) => listLikedMedia(options));
+  .action((options: { page?: string; limit?: string }) => listLikedAssets(options));
 
-media
+assets
   .command("tags")
   .description("List distinct tags (across all accessible projects, or one project with --project)")
   .option("--project <projectId>", "scope to one project")
-  .action((options: { project?: string }) => listMediaTags(options));
+  .action((options: { project?: string }) => listAssetTags(options));
 
 // .allowUnknownOption() on every command below whose only arguments are
 // bare ids/tags (no real options of their own to typo-check): ids are
@@ -86,43 +86,43 @@ media
 // parses a leading-dash positional as an unrecognized option and errors
 // out -- intermittent (~1.5% of ids) and impossible for a caller to work
 // around, so this isn't optional polish.
-media
-  .command("show <mediaId>")
-  .description("Show one media item, including a signed URL")
+assets
+  .command("show <assetId>")
+  .description("Show one asset, including a signed URL")
   .allowUnknownOption()
-  .action((mediaId: string) => showMedia(mediaId));
+  .action((assetId: string) => showAsset(assetId));
 
-media
-  .command("move <mediaId> <projectId>")
-  .description("Move media to a different project")
+assets
+  .command("move <assetId> <projectId>")
+  .description("Move an asset to a different project")
   .allowUnknownOption()
-  .action((mediaId: string, projectId: string) => moveMedia(mediaId, projectId));
+  .action((assetId: string, projectId: string) => moveAsset(assetId, projectId));
 
-media
-  .command("like <mediaId>")
-  .description("Like a media item")
+assets
+  .command("like <assetId>")
+  .description("Like an asset")
   .allowUnknownOption()
-  .action((mediaId: string) => likeMedia(mediaId));
+  .action((assetId: string) => likeAsset(assetId));
 
-media
-  .command("unlike <mediaId>")
-  .description("Unlike a media item")
+assets
+  .command("unlike <assetId>")
+  .description("Unlike an asset")
   .allowUnknownOption()
-  .action((mediaId: string) => unlikeMedia(mediaId));
+  .action((assetId: string) => unlikeAsset(assetId));
 
-const mediaTag = media.command("tag").description("Add/remove a single tag on a media item");
+const assetTag = assets.command("tag").description("Add/remove a single tag on an asset");
 
-mediaTag
-  .command("add <mediaId> <tag>")
+assetTag
+  .command("add <assetId> <tag>")
   .description("Add one tag")
   .allowUnknownOption()
-  .action((mediaId: string, tag: string) => addMediaTag(mediaId, tag));
+  .action((assetId: string, tag: string) => addAssetTag(assetId, tag));
 
-mediaTag
-  .command("remove <mediaId> <tag>")
+assetTag
+  .command("remove <assetId> <tag>")
   .description("Remove one tag")
   .allowUnknownOption()
-  .action((mediaId: string, tag: string) => removeMediaTag(mediaId, tag));
+  .action((assetId: string, tag: string) => removeAssetTag(assetId, tag));
 
 const workflows = program.command("workflows").description("Browse and run 88eggs workflows");
 
@@ -171,11 +171,11 @@ runs
   .allowUnknownOption()
   .action((runId: string) => runStatus(runId));
 
-const events = program.command("events").description("Browse the activity log (runs/jobs/media)");
+const events = program.command("events").description("Browse the activity log (runs/jobs/assets)");
 
 events
   .command("types")
-  .description("List the known event types (run/job started/finished, media added)")
+  .description("List the known event types (run/job started/finished, asset added)")
   .action(() => listEventTypes());
 
 events
