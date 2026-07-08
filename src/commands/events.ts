@@ -6,7 +6,7 @@ type EventType = {
   key: string;
   label: string;
   description: string;
-  entity_table: "runs" | "jobs" | "media";
+  entity_table: "runs" | "jobs" | "assets";
   payload_fields: EventTypePayloadField[];
 };
 
@@ -49,7 +49,7 @@ function formatEventLine(event: Event): string {
 }
 
 // No project -> GET /events (every accessible project); with one ->
-// GET /projects/:projectId/events -- same split as runs/media.
+// GET /projects/:projectId/events -- same split as runs/assets.
 export async function listEvents(options: {
   project?: string;
   type?: string;
