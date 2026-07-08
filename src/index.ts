@@ -21,7 +21,7 @@ import { listEventTypes, listEvents } from "./commands/events.js";
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.1.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.2.0");
 
 program
   .command("login")
