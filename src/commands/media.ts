@@ -6,6 +6,7 @@ type MediaRecord = {
   created_by: string;
   type: "image" | "video";
   tags: string[];
+  run_name: string | null;
   created_at: string;
 };
 
@@ -21,8 +22,9 @@ type MediaListResponse = {
 
 function formatMediaLine(item: MediaWithLiked): string {
   const tags = item.tags.length > 0 ? item.tags.join(", ") : "(no tags)";
+  const runName = item.run_name ? ` -- run "${item.run_name}"` : "";
   const liked = item.liked ? " -- liked" : "";
-  return `${item.id} -- ${item.type} -- ${tags} -- created ${item.created_at}${liked}`;
+  return `${item.id} -- ${item.type} -- ${tags}${runName} -- created ${item.created_at}${liked}`;
 }
 
 function printMediaList({ media, page, limit, total }: MediaListResponse): void {
@@ -40,11 +42,13 @@ function printMediaList({ media, page, limit, total }: MediaListResponse): void 
 export async function listMedia(options: {
   project: string;
   tag?: string;
+  runName?: string;
   page?: string;
   limit?: string;
 }): Promise<void> {
   const params = new URLSearchParams();
   if (options.tag) params.set("tag", options.tag);
+  if (options.runName) params.set("run_name", options.runName);
   if (options.page) params.set("page", options.page);
   if (options.limit) params.set("limit", options.limit);
   const query = params.toString() ? `?${params.toString()}` : "";
@@ -100,6 +104,9 @@ export async function showMedia(mediaId: string): Promise<void> {
   console.log(`Project: ${media.project_id}`);
   console.log(`Type: ${media.type}`);
   console.log(`Tags: ${media.tags.length > 0 ? media.tags.join(", ") : "(none)"}`);
+  if (media.run_name) {
+    console.log(`Run: ${media.run_name}`);
+  }
   console.log(`Liked: ${media.liked ? "yes" : "no"}`);
   console.log(`Created: ${media.created_at}`);
   console.log(`URL: ${media.url}`);
