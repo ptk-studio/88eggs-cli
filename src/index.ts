@@ -18,6 +18,14 @@ import {
 import { listWorkflows, runWorkflow, showWorkflow } from "./commands/workflows.js";
 import { listRuns, runStatus } from "./commands/runs.js";
 import { listEventTypes, listEvents } from "./commands/events.js";
+import {
+  installApp,
+  listAppCatalog,
+  listAppPages,
+  listInstalledApps,
+  showApp,
+  uninstallApp,
+} from "./commands/apps.js";
 
 const program = new Command();
 
@@ -53,14 +61,16 @@ assets
   .description("List a project's assets")
   .requiredOption("--project <projectId>", "project to list assets from")
   .option("--tag <tag>", "filter by tag")
-  .option("--run-name <runName>", "filter by (partial, case-insensitive) run name")
+  .option("--name <name>", "filter by (partial, case-insensitive) asset name")
+  .option("--type <type>", "filter by type: image, video, or audio")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
   .action(
     (options: {
       project: string;
       tag?: string;
-      runName?: string;
+      name?: string;
+      type?: string;
       page?: string;
       limit?: string;
     }) => listAssets(options),
@@ -68,10 +78,13 @@ assets
 
 assets
   .command("liked")
-  .description("List your liked assets, across every accessible project")
+  .description("List your liked assets (every accessible project, or one with --project)")
+  .option("--project <projectId>", "scope to one project")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
-  .action((options: { page?: string; limit?: string }) => listLikedAssets(options));
+  .action((options: { project?: string; page?: string; limit?: string }) =>
+    listLikedAssets(options),
+  );
 
 assets
   .command("tags")
@@ -171,11 +184,13 @@ runs
   .allowUnknownOption()
   .action((runId: string) => runStatus(runId));
 
-const events = program.command("events").description("Browse the activity log (runs/jobs/assets)");
+const events = program
+  .command("events")
+  .description("Browse the activity log (runs/jobs/assets/apps/workers)");
 
 events
   .command("types")
-  .description("List the known event types (run/job started/finished, asset added)")
+  .description("List the known event types (the live catalog)")
   .action(() => listEventTypes());
 
 events
@@ -188,6 +203,51 @@ events
   .action(
     (options: { project?: string; type?: string; page?: string; limit?: string }) =>
       listEvents(options),
+  );
+
+const apps = program
+  .command("apps")
+  .description("Browse the app catalog and manage a project's installed apps");
+
+apps
+  .command("catalog")
+  .description("List the installable app catalog (the App Store)")
+  .action(() => listAppCatalog());
+
+apps
+  .command("list")
+  .description("List a project's installed apps")
+  .requiredOption("--project <projectId>", "project to list installed apps from")
+  .action((options: { project: string }) => listInstalledApps(options));
+
+apps
+  .command("install <slug>")
+  .description("Install a catalog app into a project (by its catalog slug)")
+  .requiredOption("--project <projectId>", "project to install into")
+  .option("--name <name>", "override the installed app's name (defaults to the listing's)")
+  .action((slug: string, options: { project: string; name?: string }) =>
+    installApp(slug, options),
+  );
+
+apps
+  .command("show <appId>")
+  .description("Show one installed app")
+  .allowUnknownOption()
+  .action((appId: string) => showApp(appId));
+
+apps
+  .command("uninstall <appId>")
+  .description("Uninstall (archive) an installed app; its pages are kept")
+  .allowUnknownOption()
+  .action((appId: string) => uninstallApp(appId));
+
+apps
+  .command("pages <appId>")
+  .description("List an installed app's pages")
+  .option("--archived", "include archived pages")
+  .allowUnknownOption()
+  .action((appId: string, options: { archived?: boolean }) =>
+    listAppPages(appId, options),
   );
 
 program.parseAsync(process.argv);

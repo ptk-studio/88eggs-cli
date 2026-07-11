@@ -4,14 +4,19 @@ type AssetRecord = {
   id: string;
   project_id: string;
   created_by: string;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   tags: string[];
-  run_name: string | null;
+  // The asset's own name (filterable via --name below) and its optional
+  // description. `run_name` is the name of the run that produced it
+  // (denormalized, not on the leaner liked-list rows).
+  name: string | null;
+  description: string | null;
+  run_name?: string | null;
   created_at: string;
 };
 
 type AssetWithLiked = AssetRecord & { liked: boolean };
-type AssetDetail = AssetWithLiked & { url: string };
+type AssetDetail = AssetWithLiked & { url: string; run_id: string | null };
 
 type AssetListResponse = {
   assets: AssetWithLiked[];
@@ -21,10 +26,11 @@ type AssetListResponse = {
 };
 
 function formatAssetLine(item: AssetWithLiked): string {
+  const name = item.name ? ` "${item.name}"` : "";
   const tags = item.tags.length > 0 ? item.tags.join(", ") : "(no tags)";
   const runName = item.run_name ? ` -- run "${item.run_name}"` : "";
   const liked = item.liked ? " -- liked" : "";
-  return `${item.id} -- ${item.type} -- ${tags}${runName} -- created ${item.created_at}${liked}`;
+  return `${item.id}${name} -- ${item.type} -- ${tags}${runName} -- created ${item.created_at}${liked}`;
 }
 
 function printAssetList({ assets, page, limit, total }: AssetListResponse): void {
@@ -42,13 +48,15 @@ function printAssetList({ assets, page, limit, total }: AssetListResponse): void
 export async function listAssets(options: {
   project: string;
   tag?: string;
-  runName?: string;
+  name?: string;
+  type?: string;
   page?: string;
   limit?: string;
 }): Promise<void> {
   const params = new URLSearchParams();
   if (options.tag) params.set("tag", options.tag);
-  if (options.runName) params.set("run_name", options.runName);
+  if (options.name) params.set("name", options.name);
+  if (options.type) params.set("type", options.type);
   if (options.page) params.set("page", options.page);
   if (options.limit) params.set("limit", options.limit);
   const query = params.toString() ? `?${params.toString()}` : "";
@@ -63,8 +71,13 @@ export async function listAssets(options: {
   printAssetList(body);
 }
 
-export async function listLikedAssets(options: { page?: string; limit?: string }): Promise<void> {
+export async function listLikedAssets(options: {
+  project?: string;
+  page?: string;
+  limit?: string;
+}): Promise<void> {
   const params = new URLSearchParams();
+  if (options.project) params.set("projectId", options.project);
   if (options.page) params.set("page", options.page);
   if (options.limit) params.set("limit", options.limit);
   const query = params.toString() ? `?${params.toString()}` : "";
@@ -101,6 +114,12 @@ export async function showAsset(assetId: string): Promise<void> {
   }
 
   console.log(`ID: ${asset.id}`);
+  if (asset.name) {
+    console.log(`Name: ${asset.name}`);
+  }
+  if (asset.description) {
+    console.log(`Description: ${asset.description}`);
+  }
   console.log(`Project: ${asset.project_id}`);
   console.log(`Type: ${asset.type}`);
   console.log(`Tags: ${asset.tags.length > 0 ? asset.tags.join(", ") : "(none)"}`);

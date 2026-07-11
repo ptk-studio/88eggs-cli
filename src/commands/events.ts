@@ -6,7 +6,7 @@ type EventType = {
   key: string;
   label: string;
   description: string;
-  entity_table: "runs" | "jobs" | "assets";
+  entity_table: "runs" | "jobs" | "assets" | "apps";
   payload_fields: EventTypePayloadField[];
 };
 
@@ -17,6 +17,8 @@ type Event = {
   run_id: string | null;
   project_id: string;
   payload: Record<string, unknown>;
+  // The name of the entity the event is about (run/app name, etc.), or null.
+  name: string | null;
   created_at: string;
 };
 
@@ -44,8 +46,9 @@ export async function listEventTypes(): Promise<void> {
 }
 
 function formatEventLine(event: Event): string {
+  const name = event.name ? ` "${event.name}"` : "";
   const run = event.run_id ? ` -- run ${event.run_id}` : "";
-  return `${event.id} -- ${event.event_type_key}${run} -- ${event.created_at}`;
+  return `${event.id} -- ${event.event_type_key}${name}${run} -- ${event.created_at}`;
 }
 
 // No project -> GET /events (every accessible project); with one ->

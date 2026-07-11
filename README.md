@@ -35,8 +35,8 @@ npm link   # makes the `88eggs` command available globally
 88eggs whoami           # show the currently signed-in account
 88eggs projects list    # list your projects (--scope mine|shared|all)
 
-88eggs assets list --project <projectId>   # list a project's assets (--tag, --run-name, --page, --limit)
-88eggs assets liked                        # your liked assets, across every accessible project
+88eggs assets list --project <projectId>   # list a project's assets (--tag, --name, --type, --page, --limit)
+88eggs assets liked [--project <projectId>] # your liked assets (every accessible project, or one)
 88eggs assets tags [--project <projectId>] # distinct tags (all accessible projects, or one)
 88eggs assets show <assetId>               # one item, incl. a signed URL
 88eggs assets move <assetId> <projectId>   # move to a different project
@@ -55,10 +55,17 @@ npm link   # makes the `88eggs` command available globally
                                             # (--page, --limit)
 88eggs runs status <runId>                 # poll a run's status, with its jobs
 
-88eggs events types                        # the known event types (run/job started/finished,
-                                            # asset added)
+88eggs events types                        # the known event types (the live catalog)
 88eggs events list [--project <projectId>] # list events (every accessible project, or one)
                                             # (--type <eventTypeKey>, --page, --limit)
+
+88eggs apps catalog                        # the installable app catalog (App Store)
+88eggs apps install <slug> --project <projectId> [--name <name>]
+                                            # install a catalog app into a project
+88eggs apps list --project <projectId>     # a project's installed apps
+88eggs apps show <appId>                    # one installed app
+88eggs apps uninstall <appId>               # uninstall (archive) an app; its pages are kept
+88eggs apps pages <appId> [--archived]      # an installed app's pages
 ```
 
 ## Using this with an agent
