@@ -19,6 +19,10 @@ type Event = {
   payload: Record<string, unknown>;
   // The name of the entity the event is about (run/app name, etc.), or null.
   name: string | null;
+  // Correlation id chaining this event to its request's other records, nullable.
+  request_id: string | null;
+  // Who owns the event -- the creator of the entity it's about, or null.
+  created_by: string | null;
   created_at: string;
 };
 

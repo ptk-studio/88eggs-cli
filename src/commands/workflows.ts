@@ -24,10 +24,15 @@ type Run = {
   workflow_id: string;
   project_id: string;
   created_by: string;
-  parameters: Record<string, unknown>;
+  // The run's submitted field values (renamed from `parameters`) and its
+  // run-level outputs (non-asset result JSON, null until produced).
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown> | null;
   name: string | null;
   status: "queued" | "accepted" | "running" | "succeeded" | "failed";
   error: string | null;
+  // Correlation id chaining this run to its jobs/events/assets, nullable.
+  request_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -143,7 +148,10 @@ export async function runWorkflow(
         // (not sent as an empty string) so the backend applies its own
         // "<workflow name> <random word>" default.
         name: options.name,
-        parameters,
+        // The run's inputs (renamed from `parameters` backend-side); the
+        // local var stays `parameters` since it's built from the workflow's
+        // own parameter spec.
+        inputs: parameters,
       }),
     }),
   );

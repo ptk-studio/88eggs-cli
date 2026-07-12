@@ -10,6 +10,11 @@ type Job = {
   error: string | null;
   cost_usd: number | null;
   result_asset_id: string | null;
+  // A job's own inputs (null; read from the parent run) and non-asset
+  // outputs (e.g. youtube-upload's `{ video_id, url }`).
+  inputs: Record<string, unknown> | null;
+  outputs: Record<string, unknown> | null;
+  request_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -19,10 +24,14 @@ type Run = {
   workflow_id: string;
   project_id: string;
   created_by: string;
-  parameters: Record<string, unknown>;
+  // The run's submitted field values (renamed from `parameters`) and its
+  // run-level outputs (non-asset result JSON, null until produced).
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown> | null;
   name: string | null;
   status: "queued" | "accepted" | "running" | "succeeded" | "failed";
   error: string | null;
+  request_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -89,13 +98,21 @@ export async function runStatus(runId: string): Promise<void> {
   }
   console.log(`Updated: ${run.updated_at}`);
 
+  if (run.outputs && Object.keys(run.outputs).length > 0) {
+    console.log(`Outputs: ${JSON.stringify(run.outputs)}`);
+  }
+
   if (run.jobs.length > 0) {
     console.log("Jobs:");
     for (const job of run.jobs) {
       const cost = job.cost_usd !== null ? ` -- $${job.cost_usd}` : "";
       const asset = job.result_asset_id ? ` -- asset ${job.result_asset_id}` : "";
+      const outputs =
+        job.outputs && Object.keys(job.outputs).length > 0
+          ? ` -- ${JSON.stringify(job.outputs)}`
+          : "";
       const error = job.error ? ` -- ${job.error}` : "";
-      console.log(`  ${job.id} -- ${job.model} -- ${job.status}${cost}${asset}${error}`);
+      console.log(`  ${job.id} -- ${job.model} -- ${job.status}${cost}${asset}${outputs}${error}`);
     }
   }
 }
