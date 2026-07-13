@@ -45,15 +45,15 @@ npm link   # makes the `88eggs` command available globally
 88eggs assets tag add <assetId> <tag>       # add one tag
 88eggs assets tag remove <assetId> <tag>    # remove one tag
 
-88eggs workflows list                      # the workflow catalog
-88eggs workflows show <slug>               # one workflow's detail + parameter spec
-88eggs workflows run <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
-                                            # start a run; unset parameters use the workflow's
+88eggs task-definitions list               # the task-definition catalog
+88eggs task-definitions show <slug>        # one definition's detail + parameter spec
+88eggs task-definitions start <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
+                                            # start a task; unset parameters use the definition's
                                             # own defaults; omit --project to use your oldest one;
-                                            # omit --name to get "<workflow name> <random word>"
-88eggs runs list [--project <projectId>]   # list runs (every accessible project, or one)
+                                            # omit --name to get "<task definition name> <random word>"
+88eggs tasks list [--project <projectId>]  # list tasks (every accessible project, or one)
                                             # (--page, --limit)
-88eggs runs status <runId>                 # poll a run's status, with its jobs
+88eggs tasks status <taskId>               # poll a task's status (model, cost, outputs, result asset)
 
 88eggs events types                        # the known event types (the live catalog)
 88eggs events list [--project <projectId>] # list events (every accessible project, or one)

@@ -15,8 +15,8 @@ import {
   showAsset,
   unlikeAsset,
 } from "./commands/assets.js";
-import { listWorkflows, runWorkflow, showWorkflow } from "./commands/workflows.js";
-import { listRuns, runStatus } from "./commands/runs.js";
+import { listTaskDefinitions, showTaskDefinition, startTask } from "./commands/task-definitions.js";
+import { listTasks, taskStatus } from "./commands/tasks.js";
 import { listEventTypes, listEvents } from "./commands/events.js";
 import {
   installApp,
@@ -29,7 +29,7 @@ import {
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.4.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.5.0");
 
 program
   .command("login")
@@ -137,24 +137,26 @@ assetTag
   .allowUnknownOption()
   .action((assetId: string, tag: string) => removeAssetTag(assetId, tag));
 
-const workflows = program.command("workflows").description("Browse and run 88eggs workflows");
+const taskDefinitions = program
+  .command("task-definitions")
+  .description("Browse the task-definition catalog and start tasks");
 
-workflows
+taskDefinitions
   .command("list")
-  .description("List the workflow catalog")
-  .action(() => listWorkflows());
+  .description("List the task-definition catalog")
+  .action(() => listTaskDefinitions());
 
-workflows
+taskDefinitions
   .command("show <slug>")
-  .description("Show one workflow's detail + parameter spec")
+  .description("Show one task definition's detail + parameter spec")
   .allowUnknownOption()
-  .action((slug: string) => showWorkflow(slug));
+  .action((slug: string) => showTaskDefinition(slug));
 
-workflows
-  .command("run <slug>")
-  .description("Start a run (unset parameters fall back to the workflow's own defaults)")
+taskDefinitions
+  .command("start <slug>")
+  .description("Start a task (unset parameters fall back to the definition's own defaults)")
   .option("--project <projectId>", "defaults to your oldest project if omitted")
-  .option("--name <name>", 'a label for the run (default: "<workflow name> <random word>")')
+  .option("--name <name>", 'a label for the task (default: "<task definition name> <random word>")')
   .option(
     "--param <keyValue>",
     'a "key=value" parameter override, repeatable',
@@ -163,30 +165,30 @@ workflows
   )
   .action(
     (slug: string, options: { project?: string; name?: string; param: string[] }) =>
-      runWorkflow(slug, options),
+      startTask(slug, options),
   );
 
-const runs = program.command("runs").description("Check on workflow runs");
+const tasks = program.command("tasks").description("Check on tasks");
 
-runs
+tasks
   .command("list")
-  .description("List runs (every accessible project, or one with --project)")
+  .description("List tasks (every accessible project, or one with --project)")
   .option("--project <projectId>", "limit to one project")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
   .action((options: { project?: string; page?: string; limit?: string }) =>
-    listRuns(options),
+    listTasks(options),
   );
 
-runs
-  .command("status <runId>")
-  .description("One run's status (for polling), with its jobs")
+tasks
+  .command("status <taskId>")
+  .description("One task's status (for polling)")
   .allowUnknownOption()
-  .action((runId: string) => runStatus(runId));
+  .action((taskId: string) => taskStatus(taskId));
 
 const events = program
   .command("events")
-  .description("Browse the activity log (runs/jobs/assets/apps/workers)");
+  .description("Browse the activity log (tasks/assets/apps/workers)");
 
 events
   .command("types")

@@ -6,7 +6,7 @@ type EventType = {
   key: string;
   label: string;
   description: string;
-  entity_table: "runs" | "jobs" | "assets" | "apps";
+  entity_table: "tasks" | "assets" | "apps" | "pipelines";
   payload_fields: EventTypePayloadField[];
 };
 
@@ -14,13 +14,12 @@ type Event = {
   id: string;
   event_type_key: string;
   entity_id: string;
-  run_id: string | null;
+  task_id: string | null;
   project_id: string;
   payload: Record<string, unknown>;
-  // The name of the entity the event is about (run/app name, etc.), or null.
+  // The name of the entity the event is about (task/app name, etc.), or null.
   name: string | null;
   // Correlation id chaining this event to its request's other records, nullable.
-  request_id: string | null;
   // Who owns the event -- the creator of the entity it's about, or null.
   created_by: string | null;
   created_at: string;
@@ -51,12 +50,12 @@ export async function listEventTypes(): Promise<void> {
 
 function formatEventLine(event: Event): string {
   const name = event.name ? ` "${event.name}"` : "";
-  const run = event.run_id ? ` -- run ${event.run_id}` : "";
-  return `${event.id} -- ${event.event_type_key}${name}${run} -- ${event.created_at}`;
+  const task = event.task_id ? ` -- task ${event.task_id}` : "";
+  return `${event.id} -- ${event.event_type_key}${name}${task} -- ${event.created_at}`;
 }
 
 // No project -> GET /events (every accessible project); with one ->
-// GET /projects/:projectId/events -- same split as runs/assets.
+// GET /projects/:projectId/events -- same split as tasks/assets.
 export async function listEvents(options: {
   project?: string;
   type?: string;

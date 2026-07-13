@@ -7,16 +7,16 @@ type AssetRecord = {
   type: "image" | "video" | "audio";
   tags: string[];
   // The asset's own name (filterable via --name below) and its optional
-  // description. `run_name` is the name of the run that produced it
+  // description. `task_name` is the name of the task that produced it
   // (denormalized, not on the leaner liked-list rows).
   name: string | null;
   description: string | null;
-  run_name?: string | null;
+  task_name?: string | null;
   created_at: string;
 };
 
 type AssetWithLiked = AssetRecord & { liked: boolean };
-type AssetDetail = AssetWithLiked & { url: string; run_id: string | null };
+type AssetDetail = AssetWithLiked & { url: string; task_id: string | null };
 
 type AssetListResponse = {
   assets: AssetWithLiked[];
@@ -28,9 +28,9 @@ type AssetListResponse = {
 function formatAssetLine(item: AssetWithLiked): string {
   const name = item.name ? ` "${item.name}"` : "";
   const tags = item.tags.length > 0 ? item.tags.join(", ") : "(no tags)";
-  const runName = item.run_name ? ` -- run "${item.run_name}"` : "";
+  const taskName = item.task_name ? ` -- task "${item.task_name}"` : "";
   const liked = item.liked ? " -- liked" : "";
-  return `${item.id}${name} -- ${item.type} -- ${tags}${runName} -- created ${item.created_at}${liked}`;
+  return `${item.id}${name} -- ${item.type} -- ${tags}${taskName} -- created ${item.created_at}${liked}`;
 }
 
 function printAssetList({ assets, page, limit, total }: AssetListResponse): void {
@@ -123,8 +123,8 @@ export async function showAsset(assetId: string): Promise<void> {
   console.log(`Project: ${asset.project_id}`);
   console.log(`Type: ${asset.type}`);
   console.log(`Tags: ${asset.tags.length > 0 ? asset.tags.join(", ") : "(none)"}`);
-  if (asset.run_name) {
-    console.log(`Run: ${asset.run_name}`);
+  if (asset.task_name) {
+    console.log(`Task: ${asset.task_name}`);
   }
   console.log(`Liked: ${asset.liked ? "yes" : "no"}`);
   console.log(`Created: ${asset.created_at}`);

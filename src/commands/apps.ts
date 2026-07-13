@@ -58,7 +58,7 @@ export async function listAppCatalog(): Promise<void> {
 
 // Every install command takes a human-friendly listing slug and resolves
 // it against the catalog to the id the API needs -- same convention as
-// workflows resolving a slug (an id is accepted too, for convenience).
+// task-definitions resolving a slug (an id is accepted too, for convenience).
 async function resolveListingBySlug(slug: string): Promise<AppListing | null> {
   const body = await handleApiResponse<{ app_listings: AppListing[] }>(
     apiFetch("/app-listings"),
