@@ -17,6 +17,15 @@ import {
 } from "./commands/assets.js";
 import { listTaskDefinitions, showTaskDefinition, startTask } from "./commands/task-definitions.js";
 import { listTasks, taskStatus } from "./commands/tasks.js";
+import {
+  listPipelineDefinitions,
+  listPipelines,
+  pipelineStatus,
+  retryPipeline,
+  reviewPipeline,
+  showPipelineDefinition,
+  startPipeline,
+} from "./commands/pipelines.js";
 import { listEventTypes, listEvents } from "./commands/events.js";
 import {
   installApp,
@@ -185,6 +194,80 @@ tasks
   .description("One task's status (for polling)")
   .allowUnknownOption()
   .action((taskId: string) => taskStatus(taskId));
+
+const pipelineDefinitions = program
+  .command("pipeline-definitions")
+  .description("Browse the pipeline catalog and start pipelines");
+
+pipelineDefinitions
+  .command("list")
+  .description("List the pipeline-definition catalog")
+  .action(() => listPipelineDefinitions());
+
+pipelineDefinitions
+  .command("show <slug>")
+  .description("Show one pipeline definition's detail + parameter spec")
+  .allowUnknownOption()
+  .action((slug: string) => showPipelineDefinition(slug));
+
+pipelineDefinitions
+  .command("start <slug>")
+  .description("Start a pipeline (unset parameters fall back to the definition's own defaults)")
+  .option("--project <projectId>", "defaults to your oldest project if omitted")
+  .option("--name <name>", "a label for the pipeline")
+  .option(
+    "--param <keyValue>",
+    'a "key=value" parameter override, repeatable',
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .action(
+    (slug: string, options: { project?: string; name?: string; param: string[] }) =>
+      startPipeline(slug, options),
+  );
+
+const pipelines = program
+  .command("pipelines")
+  .description("Check on pipelines and work their review gates");
+
+pipelines
+  .command("list")
+  .description("List pipelines (every accessible project, or one with --project)")
+  .option("--project <projectId>", "limit to one project")
+  .option("--page <page>", "page number")
+  .option("--limit <limit>", "page size")
+  .action((options: { project?: string; page?: string; limit?: string }) =>
+    listPipelines(options),
+  );
+
+pipelines
+  .command("status <pipelineId>")
+  .description("One pipeline's full state: status, steps, review gates")
+  .allowUnknownOption()
+  .action((pipelineId: string) => pipelineStatus(pipelineId));
+
+pipelines
+  .command("review <pipelineId>")
+  .description("Approve or reject the current review step")
+  .option("--approve", "approve the gate (optionally with edited --field values)")
+  .option("--reject", "reject (re-rolls the step under review)")
+  .option(
+    "--field <keyValue>",
+    'a "key=value" gate-field override on approval, repeatable',
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .allowUnknownOption()
+  .action(
+    (pipelineId: string, options: { approve?: boolean; reject?: boolean; field: string[] }) =>
+      reviewPipeline(pipelineId, options),
+  );
+
+pipelines
+  .command("retry <pipelineId>")
+  .description("Resume a failed pipeline from its failed step")
+  .allowUnknownOption()
+  .action((pipelineId: string) => retryPipeline(pipelineId));
 
 const events = program
   .command("events")

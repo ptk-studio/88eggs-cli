@@ -55,6 +55,20 @@ npm link   # makes the `88eggs` command available globally
                                             # (--page, --limit)
 88eggs tasks status <taskId>               # poll a task's status (model, cost, outputs, result asset)
 
+88eggs pipeline-definitions list           # the pipeline catalog
+88eggs pipeline-definitions show <slug>    # one definition's detail + parameter spec
+88eggs pipeline-definitions start <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
+                                            # start a pipeline; unset parameters use the
+                                            # definition's own defaults
+88eggs pipelines list [--project <projectId>]
+                                            # list pipelines (--page, --limit)
+88eggs pipelines status <pipelineId>       # full state: status, per-step timeline, review gates
+88eggs pipelines review <pipelineId> --approve [--field key=value ...]
+88eggs pipelines review <pipelineId> --reject
+                                            # work the current review gate (approve, optionally
+                                            # overriding the gate's prefilled fields; reject re-rolls)
+88eggs pipelines retry <pipelineId>        # resume a failed pipeline from its failed step
+
 88eggs events types                        # the known event types (the live catalog)
 88eggs events list [--project <projectId>] # list events (every accessible project, or one)
                                             # (--type <eventTypeKey>, --page, --limit)
