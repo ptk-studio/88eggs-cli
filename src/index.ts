@@ -201,8 +201,9 @@ const pipelineDefinitions = program
 
 pipelineDefinitions
   .command("list")
-  .description("List the pipeline-definition catalog")
-  .action(() => listPipelineDefinitions());
+  .description("List the pipeline-definition catalog (every accessible project, or one with --project)")
+  .option("--project <projectId>", "limit to one project")
+  .action((options: { project?: string }) => listPipelineDefinitions(options));
 
 pipelineDefinitions
   .command("show <slug>")
