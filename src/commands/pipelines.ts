@@ -78,9 +78,14 @@ async function resolveDefinitionBySlug(
   );
 }
 
-export async function listPipelineDefinitions(): Promise<void> {
+export async function listPipelineDefinitions(
+  options: { project?: string } = {},
+): Promise<void> {
+  const query = options.project
+    ? `?projectId=${encodeURIComponent(options.project)}`
+    : "";
   const body = await handleApiResponse<{ pipeline_definitions: PipelineDefinitionSummary[] }>(
-    apiFetch("/pipeline-definitions"),
+    apiFetch(`/pipeline-definitions${query}`),
   );
   if (!body) {
     return;
