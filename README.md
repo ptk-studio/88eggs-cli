@@ -80,6 +80,23 @@ npm link   # makes the `88eggs` command available globally
 88eggs apps show <appId>                    # one installed app
 88eggs apps uninstall <appId>               # uninstall (archive) an app; its pages are kept
 88eggs apps pages <appId> [--archived]      # an installed app's pages
+
+88eggs data-tables list [--project <projectId>] [--archived]
+                                            # data tables (all accessible projects, or one)
+88eggs data-tables show <tableId>          # one table's schema (columns)
+88eggs data-tables create <name> [--project <projectId>] [--column key:type[:label] ...]
+                                            # create a table; column type is
+                                            # text|textarea|number|boolean|asset; Id + status
+                                            # columns are built in
+88eggs data-tables update <tableId> [--name <name>] [--column key:type[:label] ...]
+                                            # [--status-option <value> ...] [--archive|--restore]
+88eggs data-tables publish <tableId> [--name <name>]
+                                            # publish the schema to Templates (rows not shared)
+88eggs data-tables rows list <tableId> [--column <key> --value <value>] [--page --limit]
+88eggs data-tables rows show <tableId> <rowId>
+88eggs data-tables rows add <tableId> [--cell key=value ...] [--status <status>]
+88eggs data-tables rows update <tableId> <rowId> [--cell key=value ...] [--status <status>]
+88eggs data-tables rows delete <tableId> <rowId>
 ```
 
 ## Using this with an agent
