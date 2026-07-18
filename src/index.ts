@@ -35,6 +35,18 @@ import {
   showApp,
   uninstallApp,
 } from "./commands/apps.js";
+import {
+  addRow,
+  createDataTable,
+  deleteRow,
+  listDataTables,
+  listRows,
+  publishDataTable,
+  showDataTable,
+  showRow,
+  updateDataTable,
+  updateRow,
+} from "./commands/data-tables.js";
 
 const program = new Command();
 
@@ -335,5 +347,134 @@ apps
   .action((appId: string, options: { archived?: boolean }) =>
     listAppPages(appId, options),
   );
+
+const dataTables = program
+  .command("data-tables")
+  .description("Create and manage a project's data tables and their rows");
+
+dataTables
+  .command("list")
+  .description("List data tables (all accessible projects, or one with --project)")
+  .option("--project <projectId>", "scope to one project")
+  .option("--archived", "list archived tables instead of active")
+  .action((options: { project?: string; archived?: boolean }) => listDataTables(options));
+
+dataTables
+  .command("show <tableId>")
+  .description("Show one table's schema (columns)")
+  .allowUnknownOption()
+  .action((tableId: string) => showDataTable(tableId));
+
+dataTables
+  .command("create <name>")
+  .description("Create a data table (built-in Id + status columns are always added)")
+  .option("--project <projectId>", "defaults to your oldest project if omitted")
+  .option(
+    "--column <spec>",
+    'a column as "key:type[:label]" (type: text|textarea|number|boolean|asset), repeatable',
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .action((name: string, options: { project?: string; column: string[] }) =>
+    createDataTable(name, options),
+  );
+
+dataTables
+  .command("update <tableId>")
+  .description("Rename a table, replace its columns, set status options, or archive/restore")
+  .allowUnknownOption()
+  .option("--name <name>", "new table name")
+  .option(
+    "--column <spec>",
+    'replace the columns; "key:type[:label]", repeatable',
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .option(
+    "--status-option <value>",
+    "an allowed status value for the row editor, repeatable",
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .option("--archive", "archive the table (hidden from default listings)")
+  .option("--restore", "restore an archived table to active")
+  .action(
+    (
+      tableId: string,
+      options: {
+        name?: string;
+        column: string[];
+        statusOption: string[];
+        archive?: boolean;
+        restore?: boolean;
+      },
+    ) => updateDataTable(tableId, options),
+  );
+
+dataTables
+  .command("publish <tableId>")
+  .description("Publish the table's schema to the Templates catalog (rows are not shared)")
+  .allowUnknownOption()
+  .option("--name <name>", "template name (defaults to the table's name)")
+  .action((tableId: string, options: { name?: string }) => publishDataTable(tableId, options));
+
+const rows = dataTables.command("rows").description("List and manage a table's rows");
+
+rows
+  .command("list <tableId>")
+  .description("List rows (newest first), optionally filtered by one column")
+  .allowUnknownOption()
+  .option("--column <key>", "column to filter on (use status for the status column)")
+  .option("--value <value>", "value to match (empty string matches no-status rows)")
+  .option("--page <page>", "page number")
+  .option("--limit <limit>", "page size")
+  .action(
+    (
+      tableId: string,
+      options: { column?: string; value?: string; page?: string; limit?: string },
+    ) => listRows(tableId, options),
+  );
+
+rows
+  .command("show <tableId> <rowId>")
+  .description("Show one row's cells")
+  .allowUnknownOption()
+  .action((tableId: string, rowId: string) => showRow(tableId, rowId));
+
+rows
+  .command("add <tableId>")
+  .description("Insert a row")
+  .allowUnknownOption()
+  .option(
+    "--cell <keyValue>",
+    'a "key=value" cell, repeatable',
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .option("--status <status>", "the row's status (a first-class column, not a --cell)")
+  .action((tableId: string, options: { cell: string[]; status?: string }) =>
+    addRow(tableId, options),
+  );
+
+rows
+  .command("update <tableId> <rowId>")
+  .description("Merge-update a row's cells (omitted cells are left alone)")
+  .allowUnknownOption()
+  .option(
+    "--cell <keyValue>",
+    'a "key=value" cell, repeatable',
+    (value: string, previous: string[]) => [...previous, value],
+    [] as string[],
+  )
+  .option("--status <status>", "set the row's status (empty string clears it)")
+  .action((tableId: string, rowId: string, options: { cell: string[]; status?: string }) =>
+    updateRow(tableId, rowId, options),
+  );
+
+rows
+  .command("delete <tableId> <rowId>")
+  .description("Delete one row")
+  .allowUnknownOption()
+  .action((tableId: string, rowId: string) => deleteRow(tableId, rowId));
 
 program.parseAsync(process.argv);
