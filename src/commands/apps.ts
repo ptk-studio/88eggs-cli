@@ -177,3 +177,58 @@ export async function listAppPages(
     console.log(`${page.id} -- ${title} -- slug: ${page.slug}${archived}`);
   }
 }
+
+export async function createAppPage(
+  appId: string,
+  options: { title?: string; slug?: string },
+): Promise<void> {
+  if (!options.title) {
+    console.error("Error: --title is required.");
+    process.exitCode = 1;
+    return;
+  }
+  const page = await handleApiResponse<AppPage>(
+    apiFetch(`/apps/${appId}/pages`, {
+      method: "POST",
+      body: JSON.stringify({ title: options.title, slug: options.slug }),
+    }),
+  );
+  if (!page) return;
+  console.log(`Created page ${page.id} "${page.title}" (slug: ${page.slug}).`);
+}
+
+export async function showAppPage(appId: string, pageId: string): Promise<void> {
+  const page = await handleApiResponse<AppPage>(apiFetch(`/apps/${appId}/pages/${pageId}`));
+  if (!page) return;
+  console.log(`${page.title ?? "(untitled)"} (${page.id}) -- slug: ${page.slug} -- ${page.status}`);
+}
+
+export async function updateAppPage(
+  appId: string,
+  pageId: string,
+  options: { title?: string; slug?: string; archive?: boolean; restore?: boolean },
+): Promise<void> {
+  const body: Record<string, unknown> = {};
+  if (options.title !== undefined) body.title = options.title;
+  if (options.slug !== undefined) body.slug = options.slug;
+  if (options.archive) body.status = "archived";
+  if (options.restore) body.status = "active";
+  if (Object.keys(body).length === 0) {
+    console.error("Error: nothing to update -- pass --title, --slug, --archive, or --restore.");
+    process.exitCode = 1;
+    return;
+  }
+  const page = await handleApiResponse<AppPage>(
+    apiFetch(`/apps/${appId}/pages/${pageId}`, { method: "PATCH", body: JSON.stringify(body) }),
+  );
+  if (!page) return;
+  console.log(`Updated page ${page.id} "${page.title}" (${page.status}).`);
+}
+
+// Public page metadata by slug (unauthenticated route, but the CLI still sends
+// its token -- harmless).
+export async function showPublicPage(slug: string): Promise<void> {
+  const page = await handleApiResponse<AppPage & { app_id?: string }>(apiFetch(`/pages/${slug}`));
+  if (!page) return;
+  console.log(`${page.title ?? "(untitled)"} -- slug: ${page.slug} -- ${page.status}`);
+}
