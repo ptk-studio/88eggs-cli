@@ -283,3 +283,50 @@ export async function retryPipeline(pipelineId: string): Promise<void> {
   }
   console.log(`Pipeline ${pipeline.id} ${pipeline.status} -- retrying from ${pipeline.current_step_key ?? "the failed step"}.`);
 }
+
+export async function clonePipelineDefinition(slug: string): Promise<void> {
+  const def = await resolveDefinitionBySlug(slug);
+  if (!def) return;
+  const clone = await handleApiResponse<{ id: string; slug: string; name: string }>(
+    apiFetch(`/pipeline-definitions/${def.id}/clone`, { method: "POST" }),
+  );
+  if (!clone) return;
+  console.log(`Cloned "${def.name}" -> ${clone.id} "${clone.name}" (slug: ${clone.slug}).`);
+}
+
+export async function publishPipelineDefinition(
+  slug: string,
+  options: { name?: string; description?: string },
+): Promise<void> {
+  const def = await resolveDefinitionBySlug(slug);
+  if (!def) return;
+  const tpl = await handleApiResponse<{ id: string; name: string }>(
+    apiFetch(`/pipeline-definitions/${def.id}/publish`, {
+      method: "POST",
+      body: JSON.stringify({ name: options.name, description: options.description }),
+    }),
+  );
+  if (!tpl) return;
+  console.log(`Published "${def.name}" as template ${tpl.id} "${tpl.name}".`);
+}
+
+async function setPipelineDefinitionStatus(slug: string, status: "active" | "archived"): Promise<void> {
+  const def = await resolveDefinitionBySlug(slug);
+  if (!def) return;
+  const updated = await handleApiResponse<{ id: string; name: string }>(
+    apiFetch(`/pipeline-definitions/${def.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  );
+  if (!updated) return;
+  console.log(`${status === "archived" ? "Archived" : "Restored"} pipeline definition "${def.name}".`);
+}
+
+export async function archivePipelineDefinition(slug: string): Promise<void> {
+  await setPipelineDefinitionStatus(slug, "archived");
+}
+
+export async function restorePipelineDefinition(slug: string): Promise<void> {
+  await setPipelineDefinitionStatus(slug, "active");
+}

@@ -276,3 +276,11 @@ export async function deleteRow(tableId: string, rowId: string): Promise<void> {
   if (ok === null) return;
   console.log(`Deleted row ${rowId}.`);
 }
+
+export async function deleteDataTable(tableId: string): Promise<void> {
+  const ok = await handleApiResponse<unknown>(
+    apiFetch(`/data-tables/${tableId}`, { method: "DELETE" }),
+  );
+  if (ok === null) return;
+  console.log(`Deleted data table ${tableId} (rows cascade).`);
+}

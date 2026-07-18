@@ -84,3 +84,11 @@ export async function listEvents(options: {
   }
   console.log(`-- page ${body.page} (limit ${body.limit}, total ${body.total})`);
 }
+
+export async function showEvent(eventId: string): Promise<void> {
+  const event = await handleApiResponse<Event>(apiFetch(`/events/${eventId}`));
+  if (!event) {
+    return;
+  }
+  console.log(formatEventLine(event));
+}

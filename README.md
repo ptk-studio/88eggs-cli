@@ -97,6 +97,49 @@ npm link   # makes the `88eggs` command available globally
 88eggs data-tables rows add <tableId> [--cell key=value ...] [--status <status>]
 88eggs data-tables rows update <tableId> <rowId> [--cell key=value ...] [--status <status>]
 88eggs data-tables rows delete <tableId> <rowId>
+88eggs data-tables delete <tableId>        # delete a table (rows cascade)
+
+88eggs projects show <projectId>           # detail + your permissions
+88eggs projects create <name> [--description <text>] [--team <teamId>]
+88eggs projects update <projectId> [--name] [--description] [--team]
+88eggs projects delete <projectId>         # 409 if it still has assets
+
+88eggs pipeline-definitions clone <slug>   # duplicate within its project
+88eggs pipeline-definitions publish <slug> [--name] [--description]
+88eggs pipeline-definitions archive <slug> | restore <slug>
+
+88eggs schedules list [--project <projectId>]
+88eggs schedules show <scheduleId>
+88eggs schedules create --definition <slug> --cron "<expr>" --name <name>
+                                            # [--timezone <tz>] [--project <id>] [--param k=v ...] [--disabled]
+88eggs schedules update <scheduleId> [--name] [--cron] [--timezone] [--enable|--disable] [--param k=v ...]
+88eggs schedules delete <scheduleId>
+
+88eggs templates list [--type <type>] [--q <query>]
+88eggs templates show <templateId>
+88eggs templates clone <templateId> [--project <projectId>] [--name <name>]
+
+88eggs task-inputs list [--project <projectId>]  # saved input presets
+88eggs task-inputs show <templateId>
+88eggs task-inputs save <taskId> --name <name> [--description <text>]
+
+88eggs teams list | show <teamId> | create <name> | update <teamId> --name <name> | delete <teamId>
+88eggs teams members <teamId> | remove-member <teamId> <userId>
+88eggs teams invitations <teamId> | invite <teamId> <email> | revoke-invitation <teamId> <invitationId>
+88eggs invitations accept <invitationId> | decline <invitationId>
+
+88eggs partner-profiles list | show <id> | create --name --slug --email | task-definitions <id>
+88eggs partners show <slug> | task-definitions <slug>
+
+88eggs apps page create <appId> --title <title> [--slug <slug>]
+88eggs apps page show <appId> <pageId>
+88eggs apps page update <appId> <pageId> [--title] [--slug] [--archive|--restore]
+88eggs apps public-page <slug>             # a public page's metadata
+
+88eggs events show <eventId>               # one event's detail
+88eggs models                              # the supported-model catalog
+88eggs profile show | update [--name] [--description]
+88eggs messages list | read <messageId>
 ```
 
 ## Using this with an agent
