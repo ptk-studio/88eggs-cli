@@ -38,8 +38,7 @@ function formatTaskLine(task: Task): string {
 }
 
 // No project -> GET /tasks (every accessible project); with one ->
-// GET /projects/:projectId/tasks -- same split as listAssets/
-// listLikedAssets.
+// GET /projects/:projectId/tasks -- same split as listAssets.
 export async function listTasks(options: {
   project?: string;
   page?: string;

@@ -35,15 +35,9 @@ npm link   # makes the `88eggs` command available globally
 88eggs whoami           # show the currently signed-in account
 88eggs projects list    # list your projects (--scope mine|shared|all)
 
-88eggs assets list --project <projectId>   # list a project's assets (--tag, --name, --type, --page, --limit)
-88eggs assets liked [--project <projectId>] # your liked assets (every accessible project, or one)
-88eggs assets tags [--project <projectId>] # distinct tags (all accessible projects, or one)
+88eggs assets list --project <projectId>   # list a project's assets (--name, --type, --page, --limit)
 88eggs assets show <assetId>               # one item, incl. a signed URL
 88eggs assets move <assetId> <projectId>   # move to a different project
-88eggs assets like <assetId>                # like
-88eggs assets unlike <assetId>              # unlike
-88eggs assets tag add <assetId> <tag>       # add one tag
-88eggs assets tag remove <assetId> <tag>    # remove one tag
 
 88eggs task-definitions list               # the task-definition catalog
 88eggs task-definitions show <slug>        # one definition's detail + parameter spec

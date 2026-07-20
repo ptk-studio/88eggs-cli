@@ -11,15 +11,9 @@ import {
   updateProject,
 } from "./commands/projects.js";
 import {
-  addAssetTag,
-  likeAsset,
-  listLikedAssets,
   listAssets,
-  listAssetTags,
   moveAsset,
-  removeAssetTag,
   showAsset,
-  unlikeAsset,
 } from "./commands/assets.js";
 import { listTaskDefinitions, showTaskDefinition, startTask } from "./commands/task-definitions.js";
 import { listTasks, taskStatus } from "./commands/tasks.js";
@@ -162,7 +156,6 @@ assets
   .command("list")
   .description("List a project's assets")
   .requiredOption("--project <projectId>", "project to list assets from")
-  .option("--tag <tag>", "filter by tag")
   .option("--name <name>", "filter by (partial, case-insensitive) asset name")
   .option("--type <type>", "filter by type: image, video, or audio")
   .option("--page <page>", "page number")
@@ -170,7 +163,6 @@ assets
   .action(
     (options: {
       project: string;
-      tag?: string;
       name?: string;
       type?: string;
       page?: string;
@@ -178,24 +170,8 @@ assets
     }) => listAssets(options),
   );
 
-assets
-  .command("liked")
-  .description("List your liked assets (every accessible project, or one with --project)")
-  .option("--project <projectId>", "scope to one project")
-  .option("--page <page>", "page number")
-  .option("--limit <limit>", "page size")
-  .action((options: { project?: string; page?: string; limit?: string }) =>
-    listLikedAssets(options),
-  );
-
-assets
-  .command("tags")
-  .description("List distinct tags (across all accessible projects, or one project with --project)")
-  .option("--project <projectId>", "scope to one project")
-  .action((options: { project?: string }) => listAssetTags(options));
-
-// .allowUnknownOption() on every command below whose only arguments are
-// bare ids/tags (no real options of their own to typo-check): ids are
+// .allowUnknownOption() on every command below whose only argument is a
+// bare id (no real options of its own to typo-check): ids are
 // nanoid-generated (see 88eggs-backend's `nanoid()`), whose alphabet
 // includes `-`, so an id can start with a dash. Commander otherwise
 // parses a leading-dash positional as an unrecognized option and errors
@@ -212,32 +188,6 @@ assets
   .description("Move an asset to a different project")
   .allowUnknownOption()
   .action((assetId: string, projectId: string) => moveAsset(assetId, projectId));
-
-assets
-  .command("like <assetId>")
-  .description("Like an asset")
-  .allowUnknownOption()
-  .action((assetId: string) => likeAsset(assetId));
-
-assets
-  .command("unlike <assetId>")
-  .description("Unlike an asset")
-  .allowUnknownOption()
-  .action((assetId: string) => unlikeAsset(assetId));
-
-const assetTag = assets.command("tag").description("Add/remove a single tag on an asset");
-
-assetTag
-  .command("add <assetId> <tag>")
-  .description("Add one tag")
-  .allowUnknownOption()
-  .action((assetId: string, tag: string) => addAssetTag(assetId, tag));
-
-assetTag
-  .command("remove <assetId> <tag>")
-  .description("Remove one tag")
-  .allowUnknownOption()
-  .action((assetId: string, tag: string) => removeAssetTag(assetId, tag));
 
 const taskDefinitions = program
   .command("task-definitions")
