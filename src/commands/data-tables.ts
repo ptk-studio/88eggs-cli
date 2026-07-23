@@ -2,7 +2,7 @@ import { apiFetch, handleApiResponse } from "../lib/api.js";
 
 // Data Tables: project-scoped user-defined tables (advisory column schema +
 // string-only cells; `status` is a physical column, not a cell). Mirrors the
-// task-definitions/pipelines command style -- plain-line output, ids straight
+// tasks/pipelines command style -- plain-line output, ids straight
 // off the API. See 88eggs-backend/docs/TASK_DEFINITIONS.md's data-table tasks
 // and features/completed/260713090000-feature-backend-data-tables.md.
 

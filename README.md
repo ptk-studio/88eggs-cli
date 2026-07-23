@@ -39,29 +39,29 @@ npm link   # makes the `88eggs` command available globally
 88eggs assets show <assetId>               # one item, incl. a signed URL
 88eggs assets move <assetId> <projectId>   # move to a different project
 
-88eggs task-definitions list               # the task-definition catalog
-88eggs task-definitions show <slug>        # one definition's detail + parameter spec
-88eggs task-definitions start <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
-                                            # start a task; unset parameters use the definition's
+88eggs tasks list                          # the task catalog
+88eggs tasks show <slug>                    # one task's detail + parameter spec
+88eggs tasks start <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
+                                            # start a task run; unset parameters use the task's
                                             # own defaults; omit --project to use your oldest one;
-                                            # omit --name to get "<task definition name> <random word>"
-88eggs tasks list [--project <projectId>]  # list tasks (every accessible project, or one)
+                                            # omit --name to get "<task name> <random word>"
+88eggs task-runs list [--project <projectId>]  # list task runs (every accessible project, or one)
                                             # (--page, --limit)
-88eggs tasks status <taskId>               # poll a task's status (model, cost, outputs, result asset)
+88eggs task-runs status <taskRunId>        # poll a task run's status (model, cost, outputs, result asset)
 
-88eggs pipeline-definitions list           # the pipeline catalog
-88eggs pipeline-definitions show <slug>    # one definition's detail + parameter spec
-88eggs pipeline-definitions start <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
-                                            # start a pipeline; unset parameters use the
-                                            # definition's own defaults
-88eggs pipelines list [--project <projectId>]
-                                            # list pipelines (--page, --limit)
-88eggs pipelines status <pipelineId>       # full state: status, per-step timeline, review gates
-88eggs pipelines review <pipelineId> --approve [--field key=value ...]
-88eggs pipelines review <pipelineId> --reject
+88eggs pipelines list [--project <projectId>]   # the pipeline catalog
+88eggs pipelines show <slug>               # one pipeline's detail + parameter spec
+88eggs pipelines start <slug> [--project <projectId>] [--name <name>] [--param key=value ...]
+                                            # start a pipeline run; unset parameters use the
+                                            # pipeline's own defaults
+88eggs pipeline-runs list [--project <projectId>]
+                                            # list pipeline runs (--page, --limit)
+88eggs pipeline-runs status <pipelineRunId>  # full state: status, per-step timeline, review gates
+88eggs pipeline-runs review <pipelineRunId> --approve [--field key=value ...]
+88eggs pipeline-runs review <pipelineRunId> --reject
                                             # work the current review gate (approve, optionally
                                             # overriding the gate's prefilled fields; reject re-rolls)
-88eggs pipelines retry <pipelineId>        # resume a failed pipeline from its failed step
+88eggs pipeline-runs retry <pipelineRunId>   # resume a failed pipeline run from its failed step
 
 88eggs events types                        # the known event types (the live catalog)
 88eggs events list [--project <projectId>] # list events (every accessible project, or one)
@@ -98,9 +98,9 @@ npm link   # makes the `88eggs` command available globally
 88eggs projects update <projectId> [--name] [--description] [--team]
 88eggs projects delete <projectId>         # 409 if it still has assets
 
-88eggs pipeline-definitions clone <slug>   # duplicate within its project
-88eggs pipeline-definitions publish <slug> [--name] [--description]
-88eggs pipeline-definitions archive <slug> | restore <slug>
+88eggs pipelines clone <slug>              # duplicate within its project
+88eggs pipelines publish <slug> [--name] [--description]
+88eggs pipelines archive <slug> | restore <slug>
 
 88eggs schedules list [--project <projectId>]
 88eggs schedules show <scheduleId>
@@ -115,15 +115,15 @@ npm link   # makes the `88eggs` command available globally
 
 88eggs task-inputs list [--project <projectId>]  # saved input presets
 88eggs task-inputs show <templateId>
-88eggs task-inputs save <taskId> --name <name> [--description <text>]
+88eggs task-inputs save <taskRunId> --name <name> [--description <text>]
 
 88eggs teams list | show <teamId> | create <name> | update <teamId> --name <name> | delete <teamId>
 88eggs teams members <teamId> | remove-member <teamId> <userId>
 88eggs teams invitations <teamId> | invite <teamId> <email> | revoke-invitation <teamId> <invitationId>
 88eggs invitations accept <invitationId> | decline <invitationId>
 
-88eggs partner-profiles list | show <id> | create --name --slug --email | task-definitions <id>
-88eggs partners show <slug> | task-definitions <slug>
+88eggs partner-profiles list | show <id> | create --name --slug --email | tasks <id>
+88eggs partners show <slug> | tasks <slug>
 
 88eggs apps page create <appId> --title <title> [--slug <slug>]
 88eggs apps page show <appId> <pageId>

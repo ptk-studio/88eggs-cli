@@ -1,6 +1,6 @@
 import { apiFetch, handleApiResponse } from "../lib/api.js";
 
-type PipelineDefinitionParameter = {
+type PipelineParameter = {
   name: string;
   type: "text" | "textarea" | "select";
   label: string;
@@ -9,7 +9,7 @@ type PipelineDefinitionParameter = {
   options?: { value: string; label: string }[];
 };
 
-type PipelineDefinitionSummary = {
+type PipelineSummary = {
   id: string;
   slug: string;
   name: string;
@@ -17,13 +17,13 @@ type PipelineDefinitionSummary = {
   created_at: string;
 };
 
-type PipelineDefinitionDetail = PipelineDefinitionSummary & {
-  parameters: PipelineDefinitionParameter[];
+type PipelineDetail = PipelineSummary & {
+  parameters: PipelineParameter[];
 };
 
-type PipelineSummary = {
+type PipelineRunSummary = {
   id: string;
-  pipeline_definition_id: string;
+  pipeline_id: string;
   project_id: string;
   name: string | null;
   status: "running" | "to_be_reviewed" | "completed" | "failed";
@@ -34,80 +34,80 @@ type PipelineSummary = {
   updated_at: string;
 };
 
-// step_state: one entry per started step. A task_definition/evaluation step
-// records its child task; a review step records the decision.
+// step_state: one entry per started step. A task/evaluation step
+// records its child task run; a review step records the decision.
 type StepState = {
   status?: string;
-  task_id?: string;
+  task_run_id?: string;
   outputs?: Record<string, unknown> | null;
   review?: { state?: string; fields?: Record<string, unknown> } | null;
   started_at?: string;
   finished_at?: string;
 };
 
-type PipelineDetail = PipelineSummary & {
+type PipelineRunDetail = PipelineRunSummary & {
   inputs: Record<string, unknown>;
   steps: { key: string; type: string; label?: string }[];
   step_state: Record<string, StepState>;
 };
 
-type PipelineListResponse = {
-  pipelines: PipelineSummary[];
+type PipelineRunListResponse = {
+  pipeline_runs: PipelineRunSummary[];
   page: number;
   limit: number;
   total: number;
 };
 
-async function resolveDefinitionBySlug(
+async function resolvePipelineBySlug(
   slug: string,
-): Promise<PipelineDefinitionDetail | null> {
-  const list = await handleApiResponse<{ pipeline_definitions: PipelineDefinitionSummary[] }>(
-    apiFetch("/pipeline-definitions"),
+): Promise<PipelineDetail | null> {
+  const list = await handleApiResponse<{ pipelines: PipelineSummary[] }>(
+    apiFetch("/pipelines"),
   );
   if (!list) {
     return null;
   }
-  const match = list.pipeline_definitions.find((definition) => definition.slug === slug);
+  const match = list.pipelines.find((pipeline) => pipeline.slug === slug);
   if (!match) {
-    console.error(`Error: No pipeline definition found with slug "${slug}".`);
+    console.error(`Error: No pipeline found with slug "${slug}".`);
     process.exitCode = 1;
     return null;
   }
-  return handleApiResponse<PipelineDefinitionDetail>(
-    apiFetch(`/pipeline-definitions/${match.id}`),
+  return handleApiResponse<PipelineDetail>(
+    apiFetch(`/pipelines/${match.id}`),
   );
 }
 
-export async function listPipelineDefinitions(
+export async function listPipelines(
   options: { project?: string } = {},
 ): Promise<void> {
   const query = options.project
     ? `?projectId=${encodeURIComponent(options.project)}`
     : "";
-  const body = await handleApiResponse<{ pipeline_definitions: PipelineDefinitionSummary[] }>(
-    apiFetch(`/pipeline-definitions${query}`),
+  const body = await handleApiResponse<{ pipelines: PipelineSummary[] }>(
+    apiFetch(`/pipelines${query}`),
   );
   if (!body) {
     return;
   }
-  if (body.pipeline_definitions.length === 0) {
-    console.log("No pipeline definitions found.");
+  if (body.pipelines.length === 0) {
+    console.log("No pipelines found.");
     return;
   }
-  for (const definition of body.pipeline_definitions) {
-    console.log(`${definition.slug} -- ${definition.name} -- ${definition.description}`);
+  for (const pipeline of body.pipelines) {
+    console.log(`${pipeline.slug} -- ${pipeline.name} -- ${pipeline.description}`);
   }
 }
 
-export async function showPipelineDefinition(slug: string): Promise<void> {
-  const definition = await resolveDefinitionBySlug(slug);
-  if (!definition) {
+export async function showPipeline(slug: string): Promise<void> {
+  const pipeline = await resolvePipelineBySlug(slug);
+  if (!pipeline) {
     return;
   }
-  console.log(`${definition.name} (${definition.slug})`);
-  console.log(definition.description);
+  console.log(`${pipeline.name} (${pipeline.slug})`);
+  console.log(pipeline.description);
   console.log("Parameters:");
-  for (const param of definition.parameters) {
+  for (const param of pipeline.parameters) {
     const required = param.required ? ", required" : "";
     const options = param.options
       ? ` -- options: ${param.options.map((o) => o.value).join(", ")}`
@@ -130,12 +130,12 @@ function parseParamOverrides(pairs: string[]): Record<string, string> {
   return overrides;
 }
 
-export async function startPipeline(
+export async function startPipelineRun(
   slug: string,
   options: { project?: string; name?: string; param: string[] },
 ): Promise<void> {
-  const definition = await resolveDefinitionBySlug(slug);
-  if (!definition) {
+  const pipeline = await resolvePipelineBySlug(slug);
+  if (!pipeline) {
     return;
   }
 
@@ -149,12 +149,12 @@ export async function startPipeline(
   }
 
   const inputs: Record<string, unknown> = {};
-  for (const param of definition.parameters) {
+  for (const param of pipeline.parameters) {
     inputs[param.name] = param.name in overrides ? overrides[param.name] : param.default;
   }
 
-  const pipeline = await handleApiResponse<PipelineSummary>(
-    apiFetch("/pipelines", {
+  const pipelineRun = await handleApiResponse<PipelineRunSummary>(
+    apiFetch("/pipeline-runs", {
       method: "POST",
       body: JSON.stringify({
         definitionSlug: slug,
@@ -164,17 +164,17 @@ export async function startPipeline(
       }),
     }),
   );
-  if (!pipeline) {
+  if (!pipelineRun) {
     return;
   }
 
   console.log(
-    `Pipeline ${pipeline.id} "${pipeline.name}" ${pipeline.status} (definition: ${slug}, project: ${pipeline.project_id}).`,
+    `Pipeline run ${pipelineRun.id} "${pipelineRun.name}" ${pipelineRun.status} (pipeline: ${slug}, project: ${pipelineRun.project_id}).`,
   );
-  console.log(`Check status with \`88eggs pipelines status ${pipeline.id}\`.`);
+  console.log(`Check status with \`88eggs pipeline-runs status ${pipelineRun.id}\`.`);
 }
 
-export async function listPipelines(options: {
+export async function listPipelineRuns(options: {
   project?: string;
   page?: string;
   limit?: string;
@@ -185,63 +185,63 @@ export async function listPipelines(options: {
   if (options.limit) params.set("limit", options.limit);
   const query = params.toString() ? `?${params.toString()}` : "";
 
-  const body = await handleApiResponse<PipelineListResponse>(
-    apiFetch(`/pipelines${query}`),
+  const body = await handleApiResponse<PipelineRunListResponse>(
+    apiFetch(`/pipeline-runs${query}`),
   );
   if (!body) {
     return;
   }
-  if (body.pipelines.length === 0) {
-    console.log("No pipelines found.");
+  if (body.pipeline_runs.length === 0) {
+    console.log("No pipeline runs found.");
     return;
   }
-  for (const pipeline of body.pipelines) {
-    const name = pipeline.name ? ` "${pipeline.name}"` : "";
-    const step = pipeline.current_step_key ? ` -- at ${pipeline.current_step_key}` : "";
-    console.log(`${pipeline.id}${name} -- ${pipeline.status}${step} -- project ${pipeline.project_id}`);
+  for (const pipelineRun of body.pipeline_runs) {
+    const name = pipelineRun.name ? ` "${pipelineRun.name}"` : "";
+    const step = pipelineRun.current_step_key ? ` -- at ${pipelineRun.current_step_key}` : "";
+    console.log(`${pipelineRun.id}${name} -- ${pipelineRun.status}${step} -- project ${pipelineRun.project_id}`);
   }
   console.log(`-- page ${body.page} (limit ${body.limit}, total ${body.total})`);
 }
 
-export async function pipelineStatus(pipelineId: string): Promise<void> {
-  const pipeline = await handleApiResponse<PipelineDetail>(
-    apiFetch(`/pipelines/${pipelineId}`),
+export async function pipelineRunStatus(pipelineRunId: string): Promise<void> {
+  const pipelineRun = await handleApiResponse<PipelineRunDetail>(
+    apiFetch(`/pipeline-runs/${pipelineRunId}`),
   );
-  if (!pipeline) {
+  if (!pipelineRun) {
     return;
   }
 
-  console.log(`Pipeline: ${pipeline.id}`);
-  if (pipeline.name) {
-    console.log(`Name: ${pipeline.name}`);
+  console.log(`Pipeline run: ${pipelineRun.id}`);
+  if (pipelineRun.name) {
+    console.log(`Name: ${pipelineRun.name}`);
   }
-  console.log(`Status: ${pipeline.status}`);
-  if (pipeline.current_step_key) {
-    console.log(`Current step: ${pipeline.current_step_key}`);
+  console.log(`Status: ${pipelineRun.status}`);
+  if (pipelineRun.current_step_key) {
+    console.log(`Current step: ${pipelineRun.current_step_key}`);
   }
-  if (pipeline.error) {
-    console.log(`Error: ${pipeline.error}`);
+  if (pipelineRun.error) {
+    console.log(`Error: ${pipelineRun.error}`);
   }
-  if (pipeline.cost_usd !== null) {
-    console.log(`Cost: $${pipeline.cost_usd}`);
+  if (pipelineRun.cost_usd !== null) {
+    console.log(`Cost: $${pipelineRun.cost_usd}`);
   }
   console.log("Steps:");
-  for (const step of pipeline.steps) {
-    const state = pipeline.step_state[step.key];
+  for (const step of pipelineRun.steps) {
+    const state = pipelineRun.step_state[step.key];
     const status = state?.status ?? (state?.review ? (state.review.state ?? "pending review") : "not started");
-    const task = state?.task_id ? ` -- task ${state.task_id}` : "";
+    const taskRun = state?.task_run_id ? ` -- task run ${state.task_run_id}` : "";
     const review =
-      step.type === "review" && pipeline.status === "to_be_reviewed" && pipeline.current_step_key === step.key
-        ? " -- AWAITING REVIEW (see `pipelines review`)"
+      step.type === "review" && pipelineRun.status === "to_be_reviewed" && pipelineRun.current_step_key === step.key
+        ? " -- AWAITING REVIEW (see `pipeline-runs review`)"
         : "";
-    console.log(`  ${step.key} (${step.type}) -- ${status}${task}${review}`);
+    console.log(`  ${step.key} (${step.type}) -- ${status}${taskRun}${review}`);
   }
 }
 
 // Approve (optionally overriding gate fields) or reject (re-roll) the
-// pipeline's current review step.
-export async function reviewPipeline(
-  pipelineId: string,
+// pipeline run's current review step.
+export async function reviewPipelineRun(
+  pipelineRunId: string,
   options: { approve?: boolean; reject?: boolean; field: string[] },
 ): Promise<void> {
   if (options.approve === options.reject) {
@@ -261,47 +261,47 @@ export async function reviewPipeline(
     }
   }
 
-  const pipeline = await handleApiResponse<PipelineSummary>(
-    apiFetch(`/pipelines/${pipelineId}/review`, {
+  const pipelineRun = await handleApiResponse<PipelineRunSummary>(
+    apiFetch(`/pipeline-runs/${pipelineRunId}/review`, {
       method: "POST",
       body: JSON.stringify({ approved: Boolean(options.approve), fields }),
     }),
   );
-  if (!pipeline) {
+  if (!pipelineRun) {
     return;
   }
-  console.log(`Pipeline ${pipeline.id} ${pipeline.status} -- decision recorded.`);
-  console.log(`Check progress with \`88eggs pipelines status ${pipeline.id}\`.`);
+  console.log(`Pipeline run ${pipelineRun.id} ${pipelineRun.status} -- decision recorded.`);
+  console.log(`Check progress with \`88eggs pipeline-runs status ${pipelineRun.id}\`.`);
 }
 
-export async function retryPipeline(pipelineId: string): Promise<void> {
-  const pipeline = await handleApiResponse<PipelineSummary>(
-    apiFetch(`/pipelines/${pipelineId}/retry`, { method: "POST" }),
+export async function retryPipelineRun(pipelineRunId: string): Promise<void> {
+  const pipelineRun = await handleApiResponse<PipelineRunSummary>(
+    apiFetch(`/pipeline-runs/${pipelineRunId}/retry`, { method: "POST" }),
   );
-  if (!pipeline) {
+  if (!pipelineRun) {
     return;
   }
-  console.log(`Pipeline ${pipeline.id} ${pipeline.status} -- retrying from ${pipeline.current_step_key ?? "the failed step"}.`);
+  console.log(`Pipeline run ${pipelineRun.id} ${pipelineRun.status} -- retrying from ${pipelineRun.current_step_key ?? "the failed step"}.`);
 }
 
-export async function clonePipelineDefinition(slug: string): Promise<void> {
-  const def = await resolveDefinitionBySlug(slug);
+export async function clonePipeline(slug: string): Promise<void> {
+  const def = await resolvePipelineBySlug(slug);
   if (!def) return;
   const clone = await handleApiResponse<{ id: string; slug: string; name: string }>(
-    apiFetch(`/pipeline-definitions/${def.id}/clone`, { method: "POST" }),
+    apiFetch(`/pipelines/${def.id}/clone`, { method: "POST" }),
   );
   if (!clone) return;
   console.log(`Cloned "${def.name}" -> ${clone.id} "${clone.name}" (slug: ${clone.slug}).`);
 }
 
-export async function publishPipelineDefinition(
+export async function publishPipeline(
   slug: string,
   options: { name?: string; description?: string },
 ): Promise<void> {
-  const def = await resolveDefinitionBySlug(slug);
+  const def = await resolvePipelineBySlug(slug);
   if (!def) return;
   const tpl = await handleApiResponse<{ id: string; name: string }>(
-    apiFetch(`/pipeline-definitions/${def.id}/publish`, {
+    apiFetch(`/pipelines/${def.id}/publish`, {
       method: "POST",
       body: JSON.stringify({ name: options.name, description: options.description }),
     }),
@@ -310,23 +310,23 @@ export async function publishPipelineDefinition(
   console.log(`Published "${def.name}" as template ${tpl.id} "${tpl.name}".`);
 }
 
-async function setPipelineDefinitionStatus(slug: string, status: "active" | "archived"): Promise<void> {
-  const def = await resolveDefinitionBySlug(slug);
+async function setPipelineStatus(slug: string, status: "active" | "archived"): Promise<void> {
+  const def = await resolvePipelineBySlug(slug);
   if (!def) return;
   const updated = await handleApiResponse<{ id: string; name: string }>(
-    apiFetch(`/pipeline-definitions/${def.id}`, {
+    apiFetch(`/pipelines/${def.id}`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     }),
   );
   if (!updated) return;
-  console.log(`${status === "archived" ? "Archived" : "Restored"} pipeline definition "${def.name}".`);
+  console.log(`${status === "archived" ? "Archived" : "Restored"} pipeline "${def.name}".`);
 }
 
-export async function archivePipelineDefinition(slug: string): Promise<void> {
-  await setPipelineDefinitionStatus(slug, "archived");
+export async function archivePipeline(slug: string): Promise<void> {
+  await setPipelineStatus(slug, "archived");
 }
 
-export async function restorePipelineDefinition(slug: string): Promise<void> {
-  await setPipelineDefinitionStatus(slug, "active");
+export async function restorePipeline(slug: string): Promise<void> {
+  await setPipelineStatus(slug, "active");
 }

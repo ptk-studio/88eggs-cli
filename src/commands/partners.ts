@@ -12,7 +12,7 @@ type PartnerProfile = {
   description: string | null;
 };
 
-type TaskDefinitionSummary = {
+type TaskSummary = {
   slug: string;
   name: string;
   description: string;
@@ -68,19 +68,19 @@ export async function createPartnerProfile(options: {
   console.log(`Created partner profile ${p.id} "${p.name}" (${p.slug}) -- ${p.status}.`);
 }
 
-export async function listPartnerProfileTaskDefinitions(
+export async function listPartnerProfileTasks(
   partnerProfileId: string,
 ): Promise<void> {
-  const body = await handleApiResponse<{ task_definitions: TaskDefinitionSummary[] }>(
-    apiFetch(`/partner-profiles/${partnerProfileId}/task-definitions`),
+  const body = await handleApiResponse<{ tasks: TaskSummary[] }>(
+    apiFetch(`/partner-profiles/${partnerProfileId}/tasks`),
   );
   if (!body) return;
-  for (const d of body.task_definitions) {
+  for (const d of body.tasks) {
     console.log(`${d.slug} -- ${d.name} -- ${d.description}`);
   }
 }
 
-// Public partner page + its published task definitions, by slug.
+// Public partner page + its published tasks, by slug.
 export async function showPartner(slug: string): Promise<void> {
   const p = await handleApiResponse<PartnerProfile>(apiFetch(`/partners/${slug}`));
   if (!p) return;
@@ -88,12 +88,12 @@ export async function showPartner(slug: string): Promise<void> {
   if (p.description) console.log(p.description);
 }
 
-export async function listPartnerTaskDefinitions(slug: string): Promise<void> {
-  const body = await handleApiResponse<{ task_definitions: TaskDefinitionSummary[] }>(
-    apiFetch(`/partners/${slug}/task-definitions`),
+export async function listPartnerTasks(slug: string): Promise<void> {
+  const body = await handleApiResponse<{ tasks: TaskSummary[] }>(
+    apiFetch(`/partners/${slug}/tasks`),
   );
   if (!body) return;
-  for (const d of body.task_definitions) {
+  for (const d of body.tasks) {
     console.log(`${d.slug} -- ${d.name} -- ${d.description}`);
   }
 }

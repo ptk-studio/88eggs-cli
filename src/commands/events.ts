@@ -14,7 +14,7 @@ type Event = {
   id: string;
   event_type_key: string;
   entity_id: string;
-  task_id: string | null;
+  task_run_id: string | null;
   project_id: string;
   payload: Record<string, unknown>;
   // The name of the entity the event is about (task/app name, etc.), or null.
@@ -50,8 +50,8 @@ export async function listEventTypes(): Promise<void> {
 
 function formatEventLine(event: Event): string {
   const name = event.name ? ` "${event.name}"` : "";
-  const task = event.task_id ? ` -- task ${event.task_id}` : "";
-  return `${event.id} -- ${event.event_type_key}${name}${task} -- ${event.created_at}`;
+  const taskRun = event.task_run_id ? ` -- task run ${event.task_run_id}` : "";
+  return `${event.id} -- ${event.event_type_key}${name}${taskRun} -- ${event.created_at}`;
 }
 
 // No project -> GET /events (every accessible project); with one ->
