@@ -15,20 +15,20 @@ import {
   moveAsset,
   showAsset,
 } from "./commands/assets.js";
-import { listTaskDefinitions, showTaskDefinition, startTask } from "./commands/task-definitions.js";
-import { listTasks, taskStatus } from "./commands/tasks.js";
+import { listTasks, showTask, startTask } from "./commands/tasks.js";
+import { listTaskRuns, taskRunStatus } from "./commands/task-runs.js";
 import {
-  listPipelineDefinitions,
   listPipelines,
-  pipelineStatus,
-  retryPipeline,
-  reviewPipeline,
-  showPipelineDefinition,
-  startPipeline,
-  archivePipelineDefinition,
-  clonePipelineDefinition,
-  publishPipelineDefinition,
-  restorePipelineDefinition,
+  listPipelineRuns,
+  pipelineRunStatus,
+  retryPipelineRun,
+  reviewPipelineRun,
+  showPipeline,
+  startPipelineRun,
+  archivePipeline,
+  clonePipeline,
+  publishPipeline,
+  restorePipeline,
 } from "./commands/pipelines.js";
 import { listEventTypes, listEvents, showEvent } from "./commands/events.js";
 import {
@@ -85,8 +85,8 @@ import { listTaskInputs, saveTaskInputs, showTaskInput } from "./commands/task-i
 import {
   createPartnerProfile,
   listPartnerProfiles,
-  listPartnerProfileTaskDefinitions,
-  listPartnerTaskDefinitions,
+  listPartnerProfileTasks,
+  listPartnerTasks,
   showPartner,
   showPartnerProfile,
 } from "./commands/partners.js";
@@ -189,26 +189,26 @@ assets
   .allowUnknownOption()
   .action((assetId: string, projectId: string) => moveAsset(assetId, projectId));
 
-const taskDefinitions = program
-  .command("task-definitions")
-  .description("Browse the task-definition catalog and start tasks");
+const tasks = program
+  .command("tasks")
+  .description("Browse the task catalog and start task runs");
 
-taskDefinitions
+tasks
   .command("list")
-  .description("List the task-definition catalog")
-  .action(() => listTaskDefinitions());
+  .description("List the task catalog")
+  .action(() => listTasks());
 
-taskDefinitions
+tasks
   .command("show <slug>")
-  .description("Show one task definition's detail + parameter spec")
+  .description("Show one task's detail + parameter spec")
   .allowUnknownOption()
-  .action((slug: string) => showTaskDefinition(slug));
+  .action((slug: string) => showTask(slug));
 
-taskDefinitions
+tasks
   .command("start <slug>")
-  .description("Start a task (unset parameters fall back to the definition's own defaults)")
+  .description("Start a task run (unset parameters fall back to the task's own defaults)")
   .option("--project <projectId>", "defaults to your oldest project if omitted")
-  .option("--name <name>", 'a label for the task (default: "<task definition name> <random word>")')
+  .option("--name <name>", 'a label for the task run (default: "<task name> <random word>")')
   .option(
     "--param <keyValue>",
     'a "key=value" parameter override, repeatable',
@@ -220,45 +220,45 @@ taskDefinitions
       startTask(slug, options),
   );
 
-const tasks = program.command("tasks").description("Check on tasks");
+const taskRuns = program.command("task-runs").description("Check on task runs");
 
-tasks
+taskRuns
   .command("list")
-  .description("List tasks (every accessible project, or one with --project)")
+  .description("List task runs (every accessible project, or one with --project)")
   .option("--project <projectId>", "limit to one project")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
   .action((options: { project?: string; page?: string; limit?: string }) =>
-    listTasks(options),
+    listTaskRuns(options),
   );
 
-tasks
-  .command("status <taskId>")
-  .description("One task's status (for polling)")
+taskRuns
+  .command("status <taskRunId>")
+  .description("One task run's status (for polling)")
   .allowUnknownOption()
-  .action((taskId: string) => taskStatus(taskId));
+  .action((taskRunId: string) => taskRunStatus(taskRunId));
 
-const pipelineDefinitions = program
-  .command("pipeline-definitions")
-  .description("Browse the pipeline catalog and start pipelines");
+const pipelines = program
+  .command("pipelines")
+  .description("Browse the pipeline catalog and start pipeline runs");
 
-pipelineDefinitions
+pipelines
   .command("list")
-  .description("List the pipeline-definition catalog (every accessible project, or one with --project)")
+  .description("List the pipeline catalog (every accessible project, or one with --project)")
   .option("--project <projectId>", "limit to one project")
-  .action((options: { project?: string }) => listPipelineDefinitions(options));
+  .action((options: { project?: string }) => listPipelines(options));
 
-pipelineDefinitions
+pipelines
   .command("show <slug>")
-  .description("Show one pipeline definition's detail + parameter spec")
+  .description("Show one pipeline's detail + parameter spec")
   .allowUnknownOption()
-  .action((slug: string) => showPipelineDefinition(slug));
+  .action((slug: string) => showPipeline(slug));
 
-pipelineDefinitions
+pipelines
   .command("start <slug>")
-  .description("Start a pipeline (unset parameters fall back to the definition's own defaults)")
+  .description("Start a pipeline run (unset parameters fall back to the pipeline's own defaults)")
   .option("--project <projectId>", "defaults to your oldest project if omitted")
-  .option("--name <name>", "a label for the pipeline")
+  .option("--name <name>", "a label for the pipeline run")
   .option(
     "--param <keyValue>",
     'a "key=value" parameter override, repeatable',
@@ -267,59 +267,59 @@ pipelineDefinitions
   )
   .action(
     (slug: string, options: { project?: string; name?: string; param: string[] }) =>
-      startPipeline(slug, options),
+      startPipelineRun(slug, options),
   );
-
-pipelineDefinitions
-  .command("clone <slug>")
-  .description('Duplicate a definition within its own project ("<name> (Copy)")')
-  .allowUnknownOption()
-  .action((slug: string) => clonePipelineDefinition(slug));
-
-pipelineDefinitions
-  .command("publish <slug>")
-  .description("Publish a definition to the global Templates catalog")
-  .allowUnknownOption()
-  .option("--name <name>", "template name (defaults to the definition's)")
-  .option("--description <text>", "template description")
-  .action((slug: string, options: { name?: string; description?: string }) =>
-    publishPipelineDefinition(slug, options),
-  );
-
-pipelineDefinitions
-  .command("archive <slug>")
-  .description("Archive a definition (retire it from the active catalog)")
-  .allowUnknownOption()
-  .action((slug: string) => archivePipelineDefinition(slug));
-
-pipelineDefinitions
-  .command("restore <slug>")
-  .description("Restore an archived definition to active")
-  .allowUnknownOption()
-  .action((slug: string) => restorePipelineDefinition(slug));
-
-const pipelines = program
-  .command("pipelines")
-  .description("Check on pipelines and work their review gates");
 
 pipelines
+  .command("clone <slug>")
+  .description('Duplicate a pipeline within its own project ("<name> (Copy)")')
+  .allowUnknownOption()
+  .action((slug: string) => clonePipeline(slug));
+
+pipelines
+  .command("publish <slug>")
+  .description("Publish a pipeline to the global Templates catalog")
+  .allowUnknownOption()
+  .option("--name <name>", "template name (defaults to the pipeline's)")
+  .option("--description <text>", "template description")
+  .action((slug: string, options: { name?: string; description?: string }) =>
+    publishPipeline(slug, options),
+  );
+
+pipelines
+  .command("archive <slug>")
+  .description("Archive a pipeline (retire it from the active catalog)")
+  .allowUnknownOption()
+  .action((slug: string) => archivePipeline(slug));
+
+pipelines
+  .command("restore <slug>")
+  .description("Restore an archived pipeline to active")
+  .allowUnknownOption()
+  .action((slug: string) => restorePipeline(slug));
+
+const pipelineRuns = program
+  .command("pipeline-runs")
+  .description("Check on pipeline runs and work their review gates");
+
+pipelineRuns
   .command("list")
-  .description("List pipelines (every accessible project, or one with --project)")
+  .description("List pipeline runs (every accessible project, or one with --project)")
   .option("--project <projectId>", "limit to one project")
   .option("--page <page>", "page number")
   .option("--limit <limit>", "page size")
   .action((options: { project?: string; page?: string; limit?: string }) =>
-    listPipelines(options),
+    listPipelineRuns(options),
   );
 
-pipelines
-  .command("status <pipelineId>")
-  .description("One pipeline's full state: status, steps, review gates")
+pipelineRuns
+  .command("status <pipelineRunId>")
+  .description("One pipeline run's full state: status, steps, review gates")
   .allowUnknownOption()
-  .action((pipelineId: string) => pipelineStatus(pipelineId));
+  .action((pipelineRunId: string) => pipelineRunStatus(pipelineRunId));
 
-pipelines
-  .command("review <pipelineId>")
+pipelineRuns
+  .command("review <pipelineRunId>")
   .description("Approve or reject the current review step")
   .option("--approve", "approve the gate (optionally with edited --field values)")
   .option("--reject", "reject (re-rolls the step under review)")
@@ -331,15 +331,15 @@ pipelines
   )
   .allowUnknownOption()
   .action(
-    (pipelineId: string, options: { approve?: boolean; reject?: boolean; field: string[] }) =>
-      reviewPipeline(pipelineId, options),
+    (pipelineRunId: string, options: { approve?: boolean; reject?: boolean; field: string[] }) =>
+      reviewPipelineRun(pipelineRunId, options),
   );
 
-pipelines
-  .command("retry <pipelineId>")
-  .description("Resume a failed pipeline from its failed step")
+pipelineRuns
+  .command("retry <pipelineRunId>")
+  .description("Resume a failed pipeline run from its failed step")
   .allowUnknownOption()
-  .action((pipelineId: string) => retryPipeline(pipelineId));
+  .action((pipelineRunId: string) => retryPipelineRun(pipelineRunId));
 
 const events = program
   .command("events")
@@ -780,7 +780,7 @@ messages
 
 const taskInputs = program
   .command("task-inputs")
-  .description("Saved presets of a task definition's inputs");
+  .description("Saved presets of a task's inputs");
 taskInputs
   .command("list")
   .description("List task inputs (yours or published; --project scopes to one)")
@@ -792,13 +792,13 @@ taskInputs
   .allowUnknownOption()
   .action((templateId: string) => showTaskInput(templateId));
 taskInputs
-  .command("save <taskId>")
-  .description("Save a run task's inputs as a new personal task-input preset")
+  .command("save <taskRunId>")
+  .description("Save a task run's inputs as a new personal task-input preset")
   .allowUnknownOption()
   .requiredOption("--name <name>", "a name for the preset")
   .option("--description <text>", "a description")
-  .action((taskId: string, options: { name?: string; description?: string }) =>
-    saveTaskInputs(taskId, options),
+  .action((taskRunId: string, options: { name?: string; description?: string }) =>
+    saveTaskInputs(taskRunId, options),
   );
 
 const partnerProfiles = program
@@ -824,10 +824,10 @@ partnerProfiles
     createPartnerProfile(options),
   );
 partnerProfiles
-  .command("task-definitions <partnerProfileId>")
-  .description("List task definitions owned by a partner profile (your management view)")
+  .command("tasks <partnerProfileId>")
+  .description("List tasks owned by a partner profile (your management view)")
   .allowUnknownOption()
-  .action((partnerProfileId: string) => listPartnerProfileTaskDefinitions(partnerProfileId));
+  .action((partnerProfileId: string) => listPartnerProfileTasks(partnerProfileId));
 
 const partners = program
   .command("partners")
@@ -838,9 +838,9 @@ partners
   .allowUnknownOption()
   .action((slug: string) => showPartner(slug));
 partners
-  .command("task-definitions <slug>")
-  .description("A partner's published task definitions")
+  .command("tasks <slug>")
+  .description("A partner's published tasks")
   .allowUnknownOption()
-  .action((slug: string) => listPartnerTaskDefinitions(slug));
+  .action((slug: string) => listPartnerTasks(slug));
 
 program.parseAsync(process.argv);
