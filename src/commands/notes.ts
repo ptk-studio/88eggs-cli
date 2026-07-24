@@ -4,7 +4,7 @@ import { apiFetch, handleApiResponse } from "../lib/api.js";
 // Notes: project-scoped, human-authored markdown notes that form a small
 // internal wiki per project. Mirrors the data-tables command style -- plain-line
 // output, ids straight off the API. The tree is keyed in PATH space: `path` is
-// a unique slug (^[a-z0-9_-]+$) per project, `parent_path` is the parent note's
+// a unique slug (^[a-zA-Z0-9._-]+$) per project, `parent_path` is the parent note's
 // `path` (empty = top-level). See 88eggs-backend
 // features/completed/260724190000-feature-backend-notes.md.
 

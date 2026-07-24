@@ -638,9 +638,9 @@ notes
 
 notes
   .command("create <name>")
-  .description("Create a note (path is a unique slug: lowercase letters, digits, - and _)")
+  .description("Create a note (path is a unique slug: letters, digits, ., - and _; e.g. README.md)")
   .requiredOption("--project <projectId>", "project to create the note in")
-  .requiredOption("--path <path>", "the note's unique slug (^[a-z0-9_-]+$)")
+  .requiredOption("--path <path>", "the note's unique slug (^[a-zA-Z0-9._-]+$)")
   .option("--content <markdown>", "the note body (markdown)")
   .option("--content-file <file>", "read the note body from a markdown file")
   .option("--parent <path>", "nest under this parent note's path (omit for top-level)")

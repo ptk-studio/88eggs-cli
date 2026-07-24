@@ -99,7 +99,7 @@ npm link   # makes the `88eggs` command available globally
 88eggs notes by-path --project <projectId> --path <slug>
                                             # resolve one note by its path slug
 88eggs notes create <name> --project <projectId> --path <slug> [--content <md>|--content-file <file>] [--parent <path>]
-                                            # path is a unique slug: ^[a-z0-9_-]+$; --parent nests it
+                                            # path is a unique slug: ^[a-zA-Z0-9._-]+$ (e.g. README.md); --parent nests it
 88eggs notes update <noteId> [--name] [--path] [--content|--content-file] [--parent <path>|--top-level] [--archive|--restore]
                                             # rename re-links children; --archive cascades to descendants
 
