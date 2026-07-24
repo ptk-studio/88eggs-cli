@@ -93,6 +93,16 @@ npm link   # makes the `88eggs` command available globally
 88eggs data-tables rows delete <tableId> <rowId>
 88eggs data-tables delete <tableId>        # delete a table (rows cascade)
 
+88eggs notes list --project <projectId> [--roots | --parent <path>] [--archived|--all] [--q <text>]
+                                            # a project's notes (flat, or one level of the tree)
+88eggs notes show <noteId>                  # one note (metadata + markdown content)
+88eggs notes by-path --project <projectId> --path <slug>
+                                            # resolve one note by its path slug
+88eggs notes create <name> --project <projectId> --path <slug> [--content <md>|--content-file <file>] [--parent <path>]
+                                            # path is a unique slug: ^[a-z0-9_-]+$; --parent nests it
+88eggs notes update <noteId> [--name] [--path] [--content|--content-file] [--parent <path>|--top-level] [--archive|--restore]
+                                            # rename re-links children; --archive cascades to descendants
+
 88eggs projects show <projectId>           # detail + your permissions
 88eggs projects create <name> [--description <text>] [--team <teamId>]
 88eggs projects update <projectId> [--name] [--description] [--team]

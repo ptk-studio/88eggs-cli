@@ -71,6 +71,13 @@ import {
   updateTeam,
 } from "./commands/teams.js";
 import {
+  createNote,
+  listNotes,
+  showNote,
+  showNoteByPath,
+  updateNote,
+} from "./commands/notes.js";
+import {
   createSchedule,
   deleteSchedule,
   listSchedules,
@@ -93,7 +100,7 @@ import {
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.5.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.9.0");
 
 program
   .command("login")
@@ -587,6 +594,96 @@ rows
   .description("Delete one row")
   .allowUnknownOption()
   .action((tableId: string, rowId: string) => deleteRow(tableId, rowId));
+
+const notes = program
+  .command("notes")
+  .description("Create and manage a project's markdown notes (a per-project wiki)");
+
+notes
+  .command("list")
+  .description("List a project's notes (a flat list, or one level of the tree)")
+  .requiredOption("--project <projectId>", "project to list notes from")
+  .option("--parent <path>", "list the direct children of this note path")
+  .option("--roots", "list only top-level notes (no parent)")
+  .option("--archived", "list archived notes instead of active")
+  .option("--all", "list both active and archived")
+  .option("--q <query>", "search name/path")
+  .option("--page <page>", "page number")
+  .option("--limit <limit>", "page size")
+  .action(
+    (options: {
+      project: string;
+      parent?: string;
+      roots?: boolean;
+      archived?: boolean;
+      all?: boolean;
+      q?: string;
+      page?: string;
+      limit?: string;
+    }) => listNotes(options),
+  );
+
+notes
+  .command("show <noteId>")
+  .description("Show one note (metadata + full markdown content)")
+  .allowUnknownOption()
+  .action((noteId: string) => showNote(noteId));
+
+notes
+  .command("by-path")
+  .description("Show one note resolved by its path slug")
+  .requiredOption("--project <projectId>", "the note's project")
+  .requiredOption("--path <path>", "the note's path slug")
+  .action((options: { project: string; path: string }) => showNoteByPath(options));
+
+notes
+  .command("create <name>")
+  .description("Create a note (path is a unique slug: lowercase letters, digits, - and _)")
+  .requiredOption("--project <projectId>", "project to create the note in")
+  .requiredOption("--path <path>", "the note's unique slug (^[a-z0-9_-]+$)")
+  .option("--content <markdown>", "the note body (markdown)")
+  .option("--content-file <file>", "read the note body from a markdown file")
+  .option("--parent <path>", "nest under this parent note's path (omit for top-level)")
+  .action(
+    (
+      name: string,
+      options: {
+        project: string;
+        path: string;
+        content?: string;
+        contentFile?: string;
+        parent?: string;
+      },
+    ) => createNote(name, options),
+  );
+
+notes
+  .command("update <noteId>")
+  .description("Edit a note's name/path/content/parent, or archive/restore it")
+  .allowUnknownOption()
+  .option("--name <name>", "new display name")
+  .option("--path <path>", "new path slug (children re-link automatically)")
+  .option("--content <markdown>", "replace the body (markdown)")
+  .option("--content-file <file>", "replace the body from a markdown file")
+  .option("--parent <path>", "re-home under this parent note's path")
+  .option("--top-level", "move the note to the top level (no parent)")
+  .option("--archive", "archive the note (cascades to its descendants)")
+  .option("--restore", "restore an archived note")
+  .action(
+    (
+      noteId: string,
+      options: {
+        name?: string;
+        path?: string;
+        content?: string;
+        contentFile?: string;
+        parent?: string;
+        topLevel?: boolean;
+        archive?: boolean;
+        restore?: boolean;
+      },
+    ) => updateNote(noteId, options),
+  );
 
 const teams = program.command("teams").description("Manage teams, members, and invitations");
 
