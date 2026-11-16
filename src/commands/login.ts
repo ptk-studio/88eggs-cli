@@ -1,104 +1,129 @@
-import { createServer } from "node:http";
-import open from "open";
-import { createAuthClient } from "../lib/supabase-client.js";
+import { createInterface } from "node:readline";
+import { Writable } from "node:stream";
 import { saveCredentials } from "../lib/credentials.js";
-import { LOGIN_CALLBACK_PORT, LOGIN_CALLBACK_URL } from "../lib/constants.js";
+import { BACKEND_API_URL } from "../lib/constants.js";
 
-const SUCCESS_HTML = `<!doctype html><html><body style="font-family: system-ui; text-align: center; padding: 4rem;">
-<h1>Signed in to 88eggs</h1><p>You can close this tab and return to your terminal.</p>
-</body></html>`;
+// Sign in with a username or email and a password, through the API's Better
+// Auth route (POST /auth/sign-in). The password is read from the terminal with
+// echo off, sent once over HTTPS, and never stored: only the session token is
+// saved (~/.88eggs/credentials.json, mode 600).
+const NEEDS_TERMINAL =
+  "Sign-in needs an interactive terminal (no input was received). Run `88eggs login` in a terminal, or use --username with --password-stdin.";
 
-const ERROR_HTML = (message: string) => `<!doctype html><html><body style="font-family: system-ui; text-align: center; padding: 4rem;">
-<h1>Sign-in failed</h1><p>${message}</p><p>You can close this tab and return to your terminal.</p>
-</body></html>`;
-
-export async function login(): Promise<void> {
-  const supabase = createAuthClient();
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: LOGIN_CALLBACK_URL,
-      skipBrowserRedirect: true,
-    },
-  });
-
-  if (error || !data.url) {
-    console.error("Failed to start sign-in:", error?.message ?? "no URL returned");
-    process.exitCode = 1;
-    return;
+// A password only ever goes over HTTPS -- plain http is allowed for a local
+// backend (EGGS_API_URL=http://localhost:3000) and nothing else.
+export function isSafeSignInUrl(apiUrl: string): boolean {
+  try {
+    const url = new URL(apiUrl);
+    if (url.protocol === "https:") return true;
+    return (
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+    );
+  } catch {
+    return false;
   }
-
-  console.log("Opening your browser to sign in with Google...");
-  console.log(`If it doesn't open automatically, visit:\n  ${data.url}\n`);
-
-  const result = await waitForCallback(supabase, data.url);
-  if (!result.ok) {
-    console.error(`Sign-in failed: ${result.message}`);
-    process.exitCode = 1;
-    return;
-  }
-
-  console.log(`Signed in as ${result.email}.`);
 }
 
-function waitForCallback(
-  supabase: ReturnType<typeof createAuthClient>,
-  authUrl: string,
-): Promise<{ ok: true; email: string } | { ok: false; message: string }> {
-  return new Promise((resolve) => {
-    const server = createServer((request, response) => {
-      const url = new URL(request.url ?? "/", LOGIN_CALLBACK_URL);
-      if (url.pathname !== "/callback") {
-        response.writeHead(404).end();
-        return;
-      }
+export async function login(
+  options: { username?: string; passwordStdin?: boolean } = {},
+): Promise<void> {
+  if (!isSafeSignInUrl(BACKEND_API_URL)) {
+    console.error(
+      `Refusing to send a password to ${BACKEND_API_URL}: use https (plain http only for localhost).`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  if (options.passwordStdin && !options.username) {
+    console.error("--password-stdin needs --username.");
+    process.exitCode = 1;
+    return;
+  }
+  // Prompts need a terminal. Without one (a pipe, or a non-interactive shell)
+  // readline gets no input and Node would just exit, so say why up front.
+  if (!options.passwordStdin && process.stdin.isTTY !== true) {
+    console.error(NEEDS_TERMINAL);
+    process.exitCode = 1;
+    return;
+  }
+  const identifier = options.username ?? (await ask("Username or email: "));
+  const password = options.passwordStdin
+    ? await readAllStdin()
+    : await ask("Password: ", { hidden: true });
+  if (identifier === null || password === null) {
+    console.error(`\n${NEEDS_TERMINAL}`);
+    process.exitCode = 1;
+    return;
+  }
+  if (!identifier || !password) {
+    console.error("Sign-in cancelled: a username/email and a password are required.");
+    process.exitCode = 1;
+    return;
+  }
 
-      const code = url.searchParams.get("code");
-      const oauthError = url.searchParams.get("error_description") ?? url.searchParams.get("error");
-
-      void (async () => {
-        if (oauthError) {
-          response.writeHead(200, { "Content-Type": "text/html" }).end(ERROR_HTML(oauthError));
-          server.close();
-          resolve({ ok: false, message: oauthError });
-          return;
-        }
-
-        if (!code) {
-          response.writeHead(400, { "Content-Type": "text/html" }).end(ERROR_HTML("No authorization code received."));
-          server.close();
-          resolve({ ok: false, message: "No authorization code received." });
-          return;
-        }
-
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error || !data.session) {
-          response.writeHead(200, { "Content-Type": "text/html" }).end(ERROR_HTML(error?.message ?? "Could not complete sign-in."));
-          server.close();
-          resolve({ ok: false, message: error?.message ?? "Could not complete sign-in." });
-          return;
-        }
-
-        await saveCredentials({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          expires_at: data.session.expires_at ?? Math.floor(Date.now() / 1000) + data.session.expires_in,
-          email: data.session.user.email ?? "",
-        });
-
-        response.writeHead(200, { "Content-Type": "text/html" }).end(SUCCESS_HTML);
-        server.close();
-        resolve({ ok: true, email: data.session.user.email ?? "unknown" });
-      })();
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_API_URL}/auth/sign-in`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, password }),
     });
+  } catch (error) {
+    console.error(`Sign-in failed: ${error instanceof Error ? error.message : "network error"}`);
+    process.exitCode = 1;
+    return;
+  }
 
-    server.listen(LOGIN_CALLBACK_PORT, () => {
-      void open(authUrl);
-    });
+  const body = (await response.json().catch(() => ({}))) as {
+    token?: string;
+    user?: { email?: string };
+    error?: string;
+  };
+  if (!response.ok || !body.token) {
+    console.error(`Sign-in failed: ${body.error ?? `status ${response.status}`}`);
+    process.exitCode = 1;
+    return;
+  }
 
-    server.on("error", (err) => {
-      resolve({ ok: false, message: `Could not start local callback server: ${err.message}` });
-    });
+  const email = body.user?.email ?? (identifier.includes("@") ? identifier : "");
+  await saveCredentials({ token: body.token, email });
+  console.log(`Signed in as ${email || identifier}.`);
+}
+
+// One line from the terminal. With `hidden`, typed characters aren't echoed.
+// Resolves null when input ends without a line (no terminal, e.g. a
+// non-interactive shell), so the caller can say so instead of exiting silently.
+export function ask(prompt: string, { hidden = false } = {}): Promise<string | null> {
+  // A password is sent exactly as typed (only the line ending is dropped):
+  // trimming it would change a password that starts or ends with a space.
+  let muted = false;
+  const output = new Writable({
+    write(chunk, _encoding, callback) {
+      if (!muted) process.stdout.write(chunk);
+      callback();
+    },
   });
+  const rl = createInterface({ input: process.stdin, output, terminal: process.stdin.isTTY === true });
+  return new Promise((resolve) => {
+    let answered = false;
+    rl.question(prompt, (answer) => {
+      answered = true;
+      rl.close();
+      if (hidden) process.stdout.write("\n");
+      resolve(hidden ? answer : answer.trim());
+    });
+    rl.on("close", () => {
+      if (!answered) resolve(null);
+    });
+    muted = hidden;
+  });
+}
+
+// --password-stdin: the whole of stdin is the password (like `docker login`),
+// for scripts that pipe it from a password manager.
+export async function readAllStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks).toString("utf8").replace(/\r?\n$/, "");
 }

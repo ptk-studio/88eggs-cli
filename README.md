@@ -1,8 +1,8 @@
 # 88eggs-cli
 
-CLI for 88eggs. Signs in with your Google account (the same one you'd
-use on the 88eggs frontend) and talks to `88eggs-backend` on your
-behalf. (`88eggs-frontend`/`88eggs-backend` are private repos, not
+CLI for 88eggs. Signs in with your 88eggs username (or email) and
+password (the same ones you use on app.88eggs.com) and talks to the
+88eggs API (`https://api.88eggs.com`) on your behalf. (`88eggs-frontend`/`88eggs-backend` are private repos, not
 linked here.)
 
 This exists so [`88eggs-skills`](https://github.com/ptk-studio/88eggs-skills)
@@ -30,7 +30,7 @@ npm link   # makes the `88eggs` command available globally
 ## Commands
 
 ```bash
-88eggs login           # sign in with Google via your browser
+88eggs login           # sign in with your username/email and password
 88eggs logout          # sign out, remove stored credentials
 88eggs whoami           # show the currently signed-in account
 88eggs projects list    # list your projects (--scope mine|shared|all)
@@ -156,77 +156,51 @@ npx skills add ptk-studio/88eggs-skills --skill list-projects
 ```
 
 The skill checks `88eggs whoami` first and only runs `88eggs login`
-after asking you — since that opens your browser for a real Google
-sign-in — so `88eggs-cli` still needs to be installed and on your
+after asking you — since it prompts for your password — so `88eggs-cli` still needs to be installed and on your
 `PATH` (see **Install** above) before the skill can do anything.
 
 ## How auth works
 
-`88eggs login` runs a real OAuth flow against the same Supabase project
-`88eggs-backend`/`88eggs-frontend` already use — there's no separate
-88eggs-specific auth server, and no new backend feature was needed for
-this to work:
+Since 0.10.0 the CLI signs in through the 88eggs API's own Better Auth
+sign-in (Supabase was removed from 88eggs in 2026-11):
 
-1. Opens your browser to Supabase's `/auth/v1/authorize?provider=google`
-   (the same endpoint the frontend's "Continue with Google" button
-   hits), with `redirect_to` pointed at a local callback server this CLI
-   starts on a fixed port (`127.0.0.1:51820`).
-2. You approve in the browser (or, if already signed in and previously
-   consented, this happens instantly with no visible prompt).
-3. Supabase redirects back to the local server with an authorization
-   code; the CLI exchanges it for a real session (access + refresh
-   token) via Supabase's PKCE flow.
-4. The session is written to `~/.88eggs/credentials.json` (mode `600`)
-   — never printed, never handled by anything other than this file.
+1. `88eggs login` asks for your username or email and your password
+   (typed with echo off; `-u <name>` skips the first prompt).
+2. It sends them once, over HTTPS, to `POST https://api.88eggs.com/auth/sign-in`,
+   which answers with a session token. The password is never stored.
+3. The token is written to `~/.88eggs/credentials.json` (mode `600`) and
+   sent as `Authorization: Bearer <token>` on every other command.
+4. There's no refresh token: when the session ends, the API answers 401
+   and the CLI says to run `88eggs login` again. `88eggs logout` revokes
+   the session on the API and deletes the file.
 
-Every other command reads that file, refreshing the access token via
-the stored refresh token when it's near expiry, and calls
-`88eggs-backend` with it as a normal `Authorization: Bearer` header —
-exactly what the frontend already sends, just from a CLI instead of a
-browser tab. `requireUser()` on the backend doesn't know or care which
-one it came from.
+A credentials file from an older (Supabase-based) version is treated as
+"not signed in": run `88eggs login` once after upgrading.
 
-**Note on the redirect URL**: this worked against production without
-adding `http://127.0.0.1:51820/callback` to Supabase's redirect-URL
-allowlist first — empirically, Supabase appears to treat loopback
-(`127.0.0.1`/`localhost`) redirects as implicitly trusted for this kind
-of installed-app flow (matching the general pattern in
-[RFC 8252](https://www.rfc-editor.org/rfc/rfc8252) for native/CLI OAuth
-clients), rather than requiring an exact allowlist entry the way a
-hosted redirect URL would. Flagging this as observed behavior, not
-something confirmed against Supabase's own docs — if a fresh project
-ever rejects the redirect, add `http://127.0.0.1:51820/callback` to
-**Authentication → URL Configuration → Redirect URLs** in the Supabase
-dashboard.
+`88eggs whoami` asks the API (`GET /profile`) who the stored session
+belongs to, so an ended session shows up as "not signed in".
 
 ## Local development
 
-Point the CLI at a local Supabase + local `88eggs-backend` instead of
-production. Env vars are prefixed `EGGS_`, not `88EGGS_` — shell env var
-names can't start with a digit:
+Point the CLI at a local `88eggs-backend` instead of production. Env
+vars are prefixed `EGGS_`, not `88EGGS_` — shell env var names can't
+start with a digit:
 
 ```bash
-EGGS_SUPABASE_URL=http://127.0.0.1:54321 \
-EGGS_SUPABASE_PUBLISHABLE_KEY=<local anon/publishable key> \
-EGGS_API_URL=http://localhost:3000 \
-88eggs login
+EGGS_API_URL=http://localhost:3000 88eggs login
 ```
-
-Local Supabase has Google sign-in **disabled by default**
-(`supabase/config.toml`'s `[auth.external.google]` block) — enable it
-with real (or test) OAuth credentials first, same as any other local
-Google sign-in testing against `88eggs-backend`.
 
 ## Testing
 
 ```bash
-pnpm test        # unit tests (credentials storage, token refresh logic)
+pnpm test        # unit tests (credentials storage, the API client, login)
 pnpm typecheck
 pnpm lint
 ```
 
-The OAuth round-trip itself isn't unit-tested (there's no meaningful way
-to fake a real Google consent) — verified manually via `88eggs login`
-against production, confirming the credentials file is written
-correctly and `88eggs projects list` successfully calls the real API
-afterward.
+Login is unit-tested with a mocked API (`src/commands/login.test.ts`):
+it posts to `/auth/sign-in` and stores only the session token, never
+the password. The live sign-in needs a real account, so it's checked by
+hand after a release: `88eggs login`, then `88eggs whoami` and
+`88eggs projects list`.
+

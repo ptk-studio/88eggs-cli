@@ -23,27 +23,35 @@ describe("credentials", () => {
   });
 
   it("saves and loads credentials", async () => {
-    const creds = {
-      access_token: "access-1",
-      refresh_token: "refresh-1",
-      expires_at: 1234567890,
-      email: "person@example.com",
-    };
+    const creds = { token: "session-1", email: "person@example.com" };
 
     await credentialsModule.saveCredentials(creds);
     await expect(credentialsModule.loadCredentials()).resolves.toEqual(creds);
   });
 
+  it("keeps the file at mode 600 even when it already existed with a looser mode", async () => {
+    const { chmod, stat } = await import("node:fs/promises");
+    const file = join(tmpDir, "credentials.json");
+    await chmod(file, 0o644);
+    await credentialsModule.saveCredentials({ token: "session-1b", email: "person@example.com" });
+    expect((await stat(file)).mode & 0o777).toBe(0o600);
+  });
+
   it("overwrites previously saved credentials", async () => {
-    const updated = {
-      access_token: "access-2",
-      refresh_token: "refresh-2",
-      expires_at: 987654321,
-      email: "person@example.com",
-    };
+    const updated = { token: "session-2", email: "person@example.com" };
 
     await credentialsModule.saveCredentials(updated);
     await expect(credentialsModule.loadCredentials()).resolves.toEqual(updated);
+  });
+
+  // A pre-0.10 file holds a dead Supabase session: treated as signed out.
+  it("treats an old Supabase-style credentials file as not signed in", async () => {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(
+      join(tmpDir, "credentials.json"),
+      JSON.stringify({ access_token: "a", refresh_token: "r", expires_at: 1, email: "x@example.com" }),
+    );
+    await expect(credentialsModule.loadCredentials()).resolves.toBeNull();
   });
 
   it("clears credentials", async () => {

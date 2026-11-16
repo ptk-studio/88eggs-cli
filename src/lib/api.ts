@@ -1,44 +1,16 @@
-import { createAuthClient } from "./supabase-client.js";
-import { loadCredentials, saveCredentials } from "./credentials.js";
+import { loadCredentials } from "./credentials.js";
 import { BACKEND_API_URL } from "./constants.js";
 
-// Refreshes silently when the stored access token is at or near expiry
-// (within 60s) -- every command that hits the API goes through this
-// rather than each one separately checking expiry.
-async function getAccessToken(): Promise<string> {
+const SIGN_IN_AGAIN = "Not signed in, or your session ended. Run `88eggs login`.";
+
+async function getToken(): Promise<string> {
   const credentials = await loadCredentials();
-  if (!credentials) {
-    throw new Error("Not signed in. Run `88eggs login` first.");
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (credentials.expires_at - now > 60) {
-    return credentials.access_token;
-  }
-
-  const supabase = createAuthClient();
-  const { data, error } = await supabase.auth.refreshSession({
-    refresh_token: credentials.refresh_token,
-  });
-
-  if (error || !data.session) {
-    throw new Error(
-      `Session expired and refresh failed (${error?.message ?? "unknown error"}). Run \`88eggs login\` again.`,
-    );
-  }
-
-  await saveCredentials({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-    expires_at: data.session.expires_at ?? now + data.session.expires_in,
-    email: data.session.user.email ?? credentials.email,
-  });
-
-  return data.session.access_token;
+  if (!credentials) throw new Error(SIGN_IN_AGAIN);
+  return credentials.token;
 }
 
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const token = await getAccessToken();
+  const token = await getToken();
   const headers = new Headers(init?.headers);
   headers.set("Authorization", `Bearer ${token}`);
   headers.set("Content-Type", "application/json");
@@ -58,7 +30,7 @@ export function isErrorBody(body: unknown): body is { error: string } {
 // + exit 1; non-2xx -> print the backend's `error` message + exit 1;
 // otherwise return the parsed body) collapses to one call. Returns null
 // after already printing and setting process.exitCode on failure, so a
-// command can just `if (!body) return;`.
+// command can just `if (!body) return;`. A 401 means the session ended.
 export async function handleApiResponse<T>(
   fetchPromise: Promise<Response>,
 ): Promise<T | null> {
@@ -74,9 +46,12 @@ export async function handleApiResponse<T>(
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message = isErrorBody(body)
-      ? body.error
-      : `Request failed with status ${response.status}`;
+    const message =
+      response.status === 401
+        ? SIGN_IN_AGAIN
+        : isErrorBody(body)
+          ? body.error
+          : `Request failed with status ${response.status}`;
     console.error(`Error: ${message}`);
     process.exitCode = 1;
     return null;
