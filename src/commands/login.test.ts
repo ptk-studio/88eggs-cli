@@ -6,7 +6,7 @@ vi.mock("../lib/credentials.js", () => ({
 }));
 
 const fetchMock = vi.fn();
-const { login } = await import("./login.js");
+const { login, isSafeSignInUrl } = await import("./login.js");
 
 // The password prompt is answered through a stubbed stdin.
 describe("login", () => {
@@ -52,5 +52,16 @@ describe("login", () => {
     await login({ username: "ada" });
     expect(saveCredentials).not.toHaveBeenCalled();
     expect(process.exitCode).toBe(1);
+  });
+});
+
+describe("isSafeSignInUrl", () => {
+  it("allows https, and plain http only for localhost", () => {
+    expect(isSafeSignInUrl("https://api.88eggs.com")).toBe(true);
+    expect(isSafeSignInUrl("http://localhost:3000")).toBe(true);
+    expect(isSafeSignInUrl("http://127.0.0.1:3000")).toBe(true);
+    expect(isSafeSignInUrl("http://api.88eggs.com")).toBe(false);
+    expect(isSafeSignInUrl("http://192.168.0.5:3000")).toBe(false);
+    expect(isSafeSignInUrl("not a url")).toBe(false);
   });
 });

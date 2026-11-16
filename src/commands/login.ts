@@ -7,7 +7,29 @@ import { BACKEND_API_URL } from "../lib/constants.js";
 // Auth route (POST /auth/sign-in). The password is read from the terminal with
 // echo off, sent once over HTTPS, and never stored: only the session token is
 // saved (~/.88eggs/credentials.json, mode 600).
+// A password only ever goes over HTTPS -- plain http is allowed for a local
+// backend (EGGS_API_URL=http://localhost:3000) and nothing else.
+export function isSafeSignInUrl(apiUrl: string): boolean {
+  try {
+    const url = new URL(apiUrl);
+    if (url.protocol === "https:") return true;
+    return (
+      url.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function login(options: { username?: string } = {}): Promise<void> {
+  if (!isSafeSignInUrl(BACKEND_API_URL)) {
+    console.error(
+      `Refusing to send a password to ${BACKEND_API_URL}: use https (plain http only for localhost).`,
+    );
+    process.exitCode = 1;
+    return;
+  }
   const identifier = options.username ?? (await ask("Username or email: "));
   const password = await ask("Password: ", { hidden: true });
   if (!identifier || !password) {

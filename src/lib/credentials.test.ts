@@ -29,6 +29,14 @@ describe("credentials", () => {
     await expect(credentialsModule.loadCredentials()).resolves.toEqual(creds);
   });
 
+  it("keeps the file at mode 600 even when it already existed with a looser mode", async () => {
+    const { chmod, stat } = await import("node:fs/promises");
+    const file = join(tmpDir, "credentials.json");
+    await chmod(file, 0o644);
+    await credentialsModule.saveCredentials({ token: "session-1b", email: "person@example.com" });
+    expect((await stat(file)).mode & 0o777).toBe(0o600);
+  });
+
   it("overwrites previously saved credentials", async () => {
     const updated = { token: "session-2", email: "person@example.com" };
 
