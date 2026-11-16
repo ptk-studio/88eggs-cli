@@ -232,3 +232,21 @@ export async function showPublicPage(slug: string): Promise<void> {
   if (!page) return;
   console.log(`${page.title ?? "(untitled)"} -- slug: ${page.slug} -- ${page.status}`);
 }
+
+// POST /apps/:appId/feedback-key -- issue (or rotate) a Feedback app's public
+// key and set the web origins allowed to post (88eggs-backend#341). The key is
+// not a secret: it only names which inbox a message goes to.
+export async function feedbackKey(
+  appId: string,
+  options: { rotate?: boolean; origin?: string[] },
+): Promise<void> {
+  const body: { rotate: boolean; allowed_origins?: string[] } = { rotate: Boolean(options.rotate) };
+  if (options.origin && options.origin.length > 0) body.allowed_origins = options.origin;
+  const result = await handleApiResponse<{ feedback_public_key: string; feedback_allowed_origins: string[] }>(
+    apiFetch(`/apps/${appId}/feedback-key`, { method: "POST", body: JSON.stringify(body) }),
+  );
+  if (!result) return;
+  console.log(`Feedback key: ${result.feedback_public_key}`);
+  console.log(`Allowed origins: ${result.feedback_allowed_origins.join(", ") || "(none: only no-Origin clients and the hosted form)"}`);
+  console.log(`Hosted form: https://api.88eggs.com/f/${result.feedback_public_key}`);
+}

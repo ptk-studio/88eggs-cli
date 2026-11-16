@@ -42,6 +42,7 @@ import {
   showAppPage,
   updateAppPage,
   showPublicPage,
+  feedbackKey,
 } from "./commands/apps.js";
 import {
   addRow,
@@ -380,6 +381,13 @@ events
 const apps = program
   .command("apps")
   .description("Browse the app catalog and manage a project's installed apps");
+
+apps
+  .command("feedback-key <appId>")
+  .description("Issue or rotate an installed Feedback app's public key, and set its allowed web origins")
+  .option("--rotate", "replace the key (the old one stops working at once)")
+  .option("--origin <origin...>", "a web origin allowed to post, e.g. https://ptk-studio.com (repeatable)")
+  .action(feedbackKey);
 
 apps
   .command("catalog")
