@@ -2,10 +2,11 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+// A Better Auth session token from POST /auth/sign-in, sent as
+// `Authorization: Bearer <token>`. It's opaque and has no refresh token: when
+// the session ends the API answers 401 and the user signs in again.
 export type Credentials = {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number; // unix seconds
+  token: string;
   email: string;
 };
 
@@ -20,10 +21,13 @@ export async function saveCredentials(credentials: Credentials): Promise<void> {
   });
 }
 
+// Returns null when there's no file, or when it's an old (pre-0.10) Supabase
+// session file: those can't be used any more, so the user is "not signed in".
 export async function loadCredentials(): Promise<Credentials | null> {
   try {
-    const raw = await readFile(CREDENTIALS_PATH, "utf-8");
-    return JSON.parse(raw) as Credentials;
+    const parsed = JSON.parse(await readFile(CREDENTIALS_PATH, "utf-8")) as Partial<Credentials>;
+    if (typeof parsed.token !== "string" || parsed.token === "") return null;
+    return { token: parsed.token, email: typeof parsed.email === "string" ? parsed.email : "" };
   } catch {
     return null;
   }

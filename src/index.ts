@@ -100,11 +100,12 @@ import {
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.9.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.10.0");
 
 program
   .command("login")
-  .description("Sign in with Google via your browser")
+  .description("Sign in with your 88eggs username (or email) and password")
+  .option("-u, --username <username>", "username or email (prompted if omitted)")
   .action(login);
 
 program
