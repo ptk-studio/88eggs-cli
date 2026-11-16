@@ -95,6 +95,8 @@ export async function login(
 // Resolves null when input ends without a line (no terminal, e.g. a
 // non-interactive shell), so the caller can say so instead of exiting silently.
 export function ask(prompt: string, { hidden = false } = {}): Promise<string | null> {
+  // A password is sent exactly as typed (only the line ending is dropped):
+  // trimming it would change a password that starts or ends with a space.
   let muted = false;
   const output = new Writable({
     write(chunk, _encoding, callback) {
@@ -109,7 +111,7 @@ export function ask(prompt: string, { hidden = false } = {}): Promise<string | n
       answered = true;
       rl.close();
       if (hidden) process.stdout.write("\n");
-      resolve(answer.trim());
+      resolve(hidden ? answer : answer.trim());
     });
     rl.on("close", () => {
       if (!answered) resolve(null);

@@ -93,6 +93,29 @@ describe("login without a terminal", () => {
   });
 });
 
+describe("login: the password is sent exactly as typed", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    process.exitCode = 0;
+  });
+
+  it("doesn't trim spaces around the password", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ token: "t", user: { email: "a@example.com" } }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { PassThrough } = await import("node:stream");
+    const stdin = Object.assign(new PassThrough(), { isTTY: true });
+    Object.defineProperty(process, "stdin", { value: stdin, configurable: true });
+    setTimeout(() => stdin.write(" pass word \n"), 10);
+    await login({ username: "ada" });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).password).toBe(" pass word ");
+  });
+});
+
 describe("isSafeSignInUrl", () => {
   it("allows https, and plain http only for localhost", () => {
     expect(isSafeSignInUrl("https://api.88eggs.com")).toBe(true);
