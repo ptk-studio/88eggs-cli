@@ -18,7 +18,10 @@ type PipelineSummary = {
 };
 
 type PipelineDetail = PipelineSummary & {
-  parameters: PipelineParameter[];
+  // The backend renamed the spec field `parameters` -> `inputs`
+  // (88eggs-backend#246, 2026-07-25); `parameters` is read only as a fallback.
+  inputs?: PipelineParameter[];
+  parameters?: PipelineParameter[];
 };
 
 type PipelineRunSummary = {
@@ -107,7 +110,7 @@ export async function showPipeline(slug: string): Promise<void> {
   console.log(`${pipeline.name} (${pipeline.slug})`);
   console.log(pipeline.description);
   console.log("Parameters:");
-  for (const param of pipeline.parameters) {
+  for (const param of specOf(pipeline)) {
     const required = param.required ? ", required" : "";
     const options = param.options
       ? ` -- options: ${param.options.map((o) => o.value).join(", ")}`
@@ -149,7 +152,7 @@ export async function startPipelineRun(
   }
 
   const inputs: Record<string, unknown> = {};
-  for (const param of pipeline.parameters) {
+  for (const param of specOf(pipeline)) {
     inputs[param.name] = param.name in overrides ? overrides[param.name] : param.default;
   }
 
@@ -329,4 +332,8 @@ export async function archivePipeline(slug: string): Promise<void> {
 
 export async function restorePipeline(slug: string): Promise<void> {
   await setPipelineStatus(slug, "active");
+}
+
+function specOf(item: { inputs?: PipelineParameter[]; parameters?: PipelineParameter[] }): PipelineParameter[] {
+  return item.inputs ?? item.parameters ?? [];
 }
