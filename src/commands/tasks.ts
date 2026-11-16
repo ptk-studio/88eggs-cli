@@ -18,7 +18,10 @@ type TaskSummary = {
 };
 
 type TaskDetail = TaskSummary & {
-  parameters: TaskParameter[];
+  // The backend renamed the spec field `parameters` -> `inputs`
+  // (88eggs-backend#246, 2026-07-25); `parameters` is read only as a fallback.
+  inputs?: TaskParameter[];
+  parameters?: TaskParameter[];
 };
 
 type TaskRun = {
@@ -90,7 +93,7 @@ export async function showTask(slug: string): Promise<void> {
   console.log(`${task.name} (${task.slug})`);
   console.log(task.description);
   console.log("Parameters:");
-  for (const param of task.parameters) {
+  for (const param of specOf(task)) {
     const required = param.required ? ", required" : "";
     const options = param.options
       ? ` -- options: ${param.options.map((o) => o.value).join(", ")}`
@@ -138,7 +141,7 @@ export async function startTask(
   // falls back to it rather than requiring every start to spell out every
   // field, matching how the frontend's form pre-fills from the spec.
   const inputs: Record<string, unknown> = {};
-  for (const param of task.parameters) {
+  for (const param of specOf(task)) {
     inputs[param.name] = param.name in overrides ? overrides[param.name] : param.default;
   }
 
@@ -163,4 +166,8 @@ export async function startTask(
     `Task run ${taskRun.id} "${taskRun.name}" ${taskRun.status} (task: ${slug}, project: ${taskRun.project_id}).`,
   );
   console.log(`Check status with \`88eggs task-runs status ${taskRun.id}\`.`);
+}
+
+function specOf(item: { inputs?: TaskParameter[]; parameters?: TaskParameter[] }): TaskParameter[] {
+  return item.inputs ?? item.parameters ?? [];
 }
