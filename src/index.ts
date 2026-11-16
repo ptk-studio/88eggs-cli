@@ -106,6 +106,7 @@ program
   .command("login")
   .description("Sign in with your 88eggs username (or email) and password")
   .option("-u, --username <username>", "username or email (prompted if omitted)")
+  .option("--password-stdin", "read the password from stdin (needs --username)")
   .action(login);
 
 program

@@ -7,6 +7,9 @@ import { BACKEND_API_URL } from "../lib/constants.js";
 // Auth route (POST /auth/sign-in). The password is read from the terminal with
 // echo off, sent once over HTTPS, and never stored: only the session token is
 // saved (~/.88eggs/credentials.json, mode 600).
+const NEEDS_TERMINAL =
+  "Sign-in needs an interactive terminal (no input was received). Run `88eggs login` in a terminal, or use --username with --password-stdin.";
+
 // A password only ever goes over HTTPS -- plain http is allowed for a local
 // backend (EGGS_API_URL=http://localhost:3000) and nothing else.
 export function isSafeSignInUrl(apiUrl: string): boolean {
@@ -22,7 +25,9 @@ export function isSafeSignInUrl(apiUrl: string): boolean {
   }
 }
 
-export async function login(options: { username?: string } = {}): Promise<void> {
+export async function login(
+  options: { username?: string; passwordStdin?: boolean } = {},
+): Promise<void> {
   if (!isSafeSignInUrl(BACKEND_API_URL)) {
     console.error(
       `Refusing to send a password to ${BACKEND_API_URL}: use https (plain http only for localhost).`,
@@ -30,8 +35,27 @@ export async function login(options: { username?: string } = {}): Promise<void> 
     process.exitCode = 1;
     return;
   }
+  if (options.passwordStdin && !options.username) {
+    console.error("--password-stdin needs --username.");
+    process.exitCode = 1;
+    return;
+  }
+  // Prompts need a terminal. Without one (a pipe, or a non-interactive shell)
+  // readline gets no input and Node would just exit, so say why up front.
+  if (!options.passwordStdin && process.stdin.isTTY !== true) {
+    console.error(NEEDS_TERMINAL);
+    process.exitCode = 1;
+    return;
+  }
   const identifier = options.username ?? (await ask("Username or email: "));
-  const password = await ask("Password: ", { hidden: true });
+  const password = options.passwordStdin
+    ? await readAllStdin()
+    : await ask("Password: ", { hidden: true });
+  if (identifier === null || password === null) {
+    console.error(`\n${NEEDS_TERMINAL}`);
+    process.exitCode = 1;
+    return;
+  }
   if (!identifier || !password) {
     console.error("Sign-in cancelled: a username/email and a password are required.");
     process.exitCode = 1;
@@ -68,7 +92,9 @@ export async function login(options: { username?: string } = {}): Promise<void> 
 }
 
 // One line from the terminal. With `hidden`, typed characters aren't echoed.
-export function ask(prompt: string, { hidden = false } = {}): Promise<string> {
+// Resolves null when input ends without a line (no terminal, e.g. a
+// non-interactive shell), so the caller can say so instead of exiting silently.
+export function ask(prompt: string, { hidden = false } = {}): Promise<string | null> {
   let muted = false;
   const output = new Writable({
     write(chunk, _encoding, callback) {
@@ -76,13 +102,26 @@ export function ask(prompt: string, { hidden = false } = {}): Promise<string> {
       callback();
     },
   });
-  const rl = createInterface({ input: process.stdin, output, terminal: true });
+  const rl = createInterface({ input: process.stdin, output, terminal: process.stdin.isTTY === true });
   return new Promise((resolve) => {
+    let answered = false;
     rl.question(prompt, (answer) => {
+      answered = true;
       rl.close();
       if (hidden) process.stdout.write("\n");
       resolve(answer.trim());
     });
+    rl.on("close", () => {
+      if (!answered) resolve(null);
+    });
     muted = hidden;
   });
+}
+
+// --password-stdin: the whole of stdin is the password (like `docker login`),
+// for scripts that pipe it from a password manager.
+export async function readAllStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks).toString("utf8").replace(/\r?\n$/, "");
 }
