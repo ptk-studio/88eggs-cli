@@ -44,6 +44,7 @@ import {
   showPublicPage,
   feedbackKey,
 } from "./commands/apps.js";
+import { deleteFeedback, listFeedback, setFeedbackStatus } from "./commands/feedback.js";
 import {
   addRow,
   createDataTable,
@@ -377,6 +378,34 @@ events
   .description("Show one event's detail")
   .allowUnknownOption()
   .action((eventId: string) => showEvent(eventId));
+
+const feedback = program
+  .command("feedback")
+  .description("Read and triage a project's Feedback inbox");
+
+feedback
+  .command("list")
+  .description("List feedback, newest first (spam hidden unless --status spam or all)")
+  .requiredOption("--project <projectId>", "the project")
+  .option("--app <appId>", "one Feedback app only")
+  .option("--kind <kind>", "bug, idea, praise, question or other")
+  .option("--status <status>", "new, triaged, planned, done, wont_do, spam, or all")
+  .option("--source <source>", "web, form, api, or import:<channel>")
+  .option("--search <text>", "messages containing this text")
+  .option("--since <when>", "e.g. 7d, 24h, or a date")
+  .option("--limit <n>", "up to 200 (default 50)")
+  .option("--json", "print the raw JSON")
+  .action(listFeedback);
+
+feedback
+  .command("status <id> <status>")
+  .description("Set a feedback item's status")
+  .action(setFeedbackStatus);
+
+feedback
+  .command("delete <id>")
+  .description("Delete a feedback item (permanent)")
+  .action(deleteFeedback);
 
 const apps = program
   .command("apps")
