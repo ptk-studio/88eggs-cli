@@ -100,3 +100,70 @@ export async function moveAsset(assetId: string, projectId: string): Promise<voi
 
   console.log(`Moved ${assetId} to project ${asset.project_id}.`);
 }
+
+// assets upload <file> -- upload an image or a video through the signed-URL
+// path (88eggs-backend#404): upload-url -> PUT the bytes straight to storage
+// -> confirm. Videos (mp4/mov, up to 200 MB) can only go this way.
+export const UPLOAD_CONTENT_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+};
+
+export function contentTypeForFile(path: string): string | null {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  return UPLOAD_CONTENT_TYPES[ext] ?? null;
+}
+
+export async function uploadAsset(
+  file: string,
+  options: { project: string; name?: string },
+  deps: { readFile?: (p: string) => Promise<Uint8Array>; put?: typeof fetch } = {},
+): Promise<void> {
+  const contentType = contentTypeForFile(file);
+  if (!contentType) {
+    console.error(`Error: unsupported file type. Allowed: ${Object.keys(UPLOAD_CONTENT_TYPES).join(", ")}`);
+    process.exitCode = 1;
+    return;
+  }
+  const readFile = deps.readFile ?? (async (p: string) => new Uint8Array(await (await import("node:fs/promises")).readFile(p)));
+  const bytes = await readFile(file);
+  const filename = options.name ?? file.split("/").pop() ?? file;
+
+  const minted = await handleApiResponse<{ assetId: string; path: string; provider: string; uploadUrl: string }>(
+    apiFetch(`/projects/${encodeURIComponent(options.project)}/assets/upload-url`, {
+      method: "POST",
+      body: JSON.stringify({ filename, contentType }),
+    }),
+  );
+  if (!minted) return;
+
+  const put = deps.put ?? fetch;
+  const res = await put(minted.uploadUrl, { method: "PUT", headers: { "Content-Type": contentType }, body: bytes });
+  if (!res.ok) {
+    console.error(`Error: the upload to storage failed (HTTP ${res.status}).`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const confirmed = await handleApiResponse<{ asset: { id: string; type: string; name: string } }>(
+    apiFetch(`/projects/${encodeURIComponent(options.project)}/assets/confirm`, {
+      method: "POST",
+      body: JSON.stringify({ assetId: minted.assetId, path: minted.path, filename, provider: minted.provider }),
+    }),
+  );
+  if (!confirmed) return;
+  console.log(`Uploaded ${confirmed.asset.type} "${confirmed.asset.name}" as asset ${confirmed.asset.id} (${bytes.length} bytes).`);
+}
+
+// assets archive <assetId> -- archive an asset (POST /assets/:id/archive), the
+// app's own "delete": hidden from lists, restorable with --restore.
+export async function archiveAsset(assetId: string, options: { restore?: boolean }): Promise<void> {
+  const body = await handleApiResponse<{ id: string; archived: boolean }>(
+    apiFetch(`/assets/${encodeURIComponent(assetId)}/archive`, { method: options.restore ? "DELETE" : "POST" }),
+  );
+  if (body) console.log(`Asset ${body.id} is now ${body.archived ? "archived" : "restored"}.`);
+}
