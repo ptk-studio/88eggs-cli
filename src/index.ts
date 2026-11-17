@@ -104,7 +104,7 @@ import {
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.11.0");
+program.name("88eggs").description("CLI for 88eggs").version("0.11.1");
 
 program
   .command("login")
