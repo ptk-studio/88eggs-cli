@@ -14,6 +14,8 @@ import {
   listAssets,
   moveAsset,
   showAsset,
+  uploadAsset,
+  archiveAsset,
 } from "./commands/assets.js";
 import { listTasks, showTask, startTask } from "./commands/tasks.js";
 import { listTaskRuns, taskRunStatus } from "./commands/task-runs.js";
@@ -161,6 +163,19 @@ projects
   .action((projectId: string) => deleteProject(projectId));
 
 const assets = program.command("assets").description("Browse and manage assets");
+
+assets
+  .command("upload <file>")
+  .description("Upload an image (png/jpg/webp, max 10 MB) or a video (mp4/mov, max 200 MB) to a project's assets")
+  .requiredOption("--project <projectId>", "the project to upload into")
+  .option("--name <name>", "the asset's name (default: the file name)")
+  .action((file, options) => uploadAsset(file, options));
+
+assets
+  .command("archive <assetId>")
+  .description("Archive an asset (hidden from lists; --restore brings it back)")
+  .option("--restore", "restore an archived asset")
+  .action((assetId, options) => archiveAsset(assetId, options));
 
 assets
   .command("list")
