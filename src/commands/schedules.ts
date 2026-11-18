@@ -16,7 +16,7 @@ type Schedule = {
   blocked_count?: number;
   blocked_since?: string | null;
   blocked_reason?: string | null;
-  blocked_detail?: { needed?: number; balance?: number; provider?: string } | null;
+  blocked_detail?: { needed?: number; balance?: number; provider?: string; connection_id?: string } | null;
   paused_reason?: string | null;
   paused_at?: string | null;
   pipeline?: { name: string } | null;
@@ -28,10 +28,14 @@ function why(sc: Schedule): string {
     return `out of credits: needs ${sc.blocked_detail?.needed ?? "?"}, balance ${sc.blocked_detail?.balance ?? "?"}`;
   }
   if (reason.startsWith("provider_out_of_funds:")) return `the ${reason.split(":")[1]} account is out of funds`;
+  if (reason === "connection_needs_reconnect") {
+    // #331: a publish step's connection needs signing in again.
+    return `the ${sc.blocked_detail?.provider ?? ""} connection ${sc.blocked_detail?.connection_id ?? ""} needs reconnecting`.replace(/\s+/g, " ");
+  }
   return reason || "-";
 }
 
-// `schedules blocked`: every schedule that isn't running for lack of credits or a provider's funds. PAUSED ones first
+// `schedules blocked`: every schedule that isn't running for lack of credits, a provider's funds, or a dead connection. PAUSED ones first
 // (they need a person), then the longest blocked. Prints "No blocked schedules." when there are none, so a sweep can
 // check one line. Exit code 0 either way (a blocked schedule is news, not an error of this command).
 export async function listBlockedSchedules(options: { project?: string; json?: boolean }): Promise<void> {
