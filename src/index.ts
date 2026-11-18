@@ -95,6 +95,7 @@ import { cloneTemplate, listTemplates, showTemplate } from "./commands/templates
 import { listModels } from "./commands/models.js";
 import { showProfile, updateProfile } from "./commands/profile.js";
 import { listMessages, readMessage } from "./commands/messages.js";
+import { connectionsHealth } from "./commands/connections.js";
 import { listTaskInputs, saveTaskInputs, showTaskInput } from "./commands/task-inputs.js";
 import {
   createPartnerProfile,
@@ -831,12 +832,23 @@ invitations
   .allowUnknownOption()
   .action((invitationId: string) => declineInvitation(invitationId));
 
+const connections = program
+  .command("connections")
+  .description("Connected accounts (YouTube, Instagram, X, Printify, …)");
+connections
+  .command("health")
+  .description("Connections that need reconnecting or expire soon (88eggs-backend#331); every project, or one")
+  .option("--project <projectId>", "one project only")
+  .option("--all", "list every connection with its health, not only the problems")
+  .option("--json", "print the raw JSON")
+  .action((options: { project?: string; all?: boolean; json?: boolean }) => connectionsHealth(options));
+
 const schedules = program
   .command("schedules")
   .description("Manage recurring pipeline schedules");
 schedules
   .command("blocked")
-  .description("Schedules that aren't running for lack of credits or a provider's funds (paused first) (#327)")
+  .description("Schedules that aren't running for lack of credits, a provider's funds or a dead connection (paused first) (#327, #331)")
   .option("--project <projectId>", "one project only")
   .option("--json", "print the raw JSON")
   .action((options: { project?: string; json?: boolean }) => listBlockedSchedules(options));
