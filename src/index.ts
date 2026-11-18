@@ -220,11 +220,15 @@ assets
 const socialPosts = program
   .command("social-posts")
   .description("The Social Posts app's queue (no review command: the owner reviews in app.88eggs.com)");
-socialPosts.command("list <appId>").description("List posts").option("--view <view>", "today | review | all", "all").action(listSocialPosts);
+socialPosts.command("list <appId>").description("List posts").option("--view <view>", "today | review | all", "all")
+  .option("--reveal-scores", "show the manager's scores even for an A/B pair the owner hasn't picked from yet (the web page never does)")
+  .action(listSocialPosts);
 socialPosts.command("add <appId>").description("Add a draft post")
   .requiredOption("--account <account>", "e.g. x:@PTKStudio88").requiredOption("--text <text>", "the post text (≤ 280)")
   .option("--link <url>", "an https link").option("--image <assetId>", "an image asset").option("--alt <text>", "the image's alt text")
-  .option("--at <iso>", "planned time, ISO with offset").action(addSocialPost);
+  .option("--at <iso>", "planned time, ISO with offset")
+  .option("--ab-group <id>", "an A/B pair id (both versions share it)").option("--variant <A|B>", "which version of the pair")
+  .action(addSocialPost);
 socialPosts.command("edit <appId> <postId>").description("Edit a post (an OK'd post goes back to pending)")
   .option("--text <text>").option("--link <url>").option("--image <assetId>").option("--alt <text>").option("--at <iso>").action(editSocialPost);
 socialPosts.command("score <appId> <postId>").description("The manager's score and verdict")
