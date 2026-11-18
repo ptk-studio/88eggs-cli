@@ -12,7 +12,46 @@ type Schedule = {
   enabled: boolean;
   next_run_at: string | null;
   inputs: Record<string, unknown>;
+  // Why it isn't running (88eggs-backend#327).
+  blocked_count?: number;
+  blocked_since?: string | null;
+  blocked_reason?: string | null;
+  blocked_detail?: { needed?: number; balance?: number; provider?: string } | null;
+  paused_reason?: string | null;
+  paused_at?: string | null;
+  pipeline?: { name: string } | null;
 };
+
+function why(sc: Schedule): string {
+  const reason = sc.paused_reason ?? sc.blocked_reason ?? "";
+  if (reason === "insufficient_credits") {
+    return `out of credits: needs ${sc.blocked_detail?.needed ?? "?"}, balance ${sc.blocked_detail?.balance ?? "?"}`;
+  }
+  if (reason.startsWith("provider_out_of_funds:")) return `the ${reason.split(":")[1]} account is out of funds`;
+  return reason || "-";
+}
+
+// `schedules blocked`: every schedule that isn't running for lack of credits or a provider's funds. PAUSED ones first
+// (they need a person), then the longest blocked. Prints "No blocked schedules." when there are none, so a sweep can
+// check one line. Exit code 0 either way (a blocked schedule is news, not an error of this command).
+export async function listBlockedSchedules(options: { project?: string; json?: boolean }): Promise<void> {
+  const q = new URLSearchParams({ state: "blocked", limit: "100" });
+  if (options.project) q.set("projectId", options.project);
+  const body = await handleApiResponse<{ schedules: Schedule[]; total: number }>(apiFetch(`/pipeline-schedules?${q}`));
+  if (!body) return;
+  if (options.json) {
+    console.log(JSON.stringify(body.schedules, null, 2));
+    return;
+  }
+  if (body.schedules.length === 0) {
+    console.log("No blocked schedules.");
+    return;
+  }
+  for (const sc of body.schedules) {
+    const state = sc.paused_reason ? `PAUSED since ${sc.paused_at}` : `blocked ${sc.blocked_count}x since ${sc.blocked_since}`;
+    console.log(`${state} -- ${sc.id} -- ${sc.name}${sc.pipeline?.name ? ` (${sc.pipeline.name})` : ""} -- project ${sc.project_id} -- ${why(sc)}`);
+  }
+}
 
 function parseParams(pairs: string[]): Record<string, string> {
   const out: Record<string, string> = {};

@@ -87,6 +87,7 @@ import {
   createSchedule,
   deleteSchedule,
   listSchedules,
+  listBlockedSchedules,
   showSchedule,
   updateSchedule,
 } from "./commands/schedules.js";
@@ -833,6 +834,12 @@ invitations
 const schedules = program
   .command("schedules")
   .description("Manage recurring pipeline schedules");
+schedules
+  .command("blocked")
+  .description("Schedules that aren't running for lack of credits or a provider's funds (paused first) (#327)")
+  .option("--project <projectId>", "one project only")
+  .option("--json", "print the raw JSON")
+  .action((options: { project?: string; json?: boolean }) => listBlockedSchedules(options));
 schedules
   .command("list")
   .description("List schedules (all accessible projects, or one with --project)")
