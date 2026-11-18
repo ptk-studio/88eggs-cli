@@ -74,3 +74,7 @@ for the auth flow design before making non-trivial changes.
   real manual pass (`88eggs login`, `88eggs whoami`,
   `88eggs projects list`, `88eggs logout`) — this is the one part of
   the codebase that can't be verified by the test suite alone.
+
+## Scheduled work
+
+What runs on a schedule for this repo: [`SCHEDULE.md`](SCHEDULE.md) (R93).
