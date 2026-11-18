@@ -7,19 +7,22 @@ import { apiFetch, handleApiResponse } from "../lib/api.js";
 type Post = {
   id: string; account: string; text: string; link: string | null; planned_at: string | null;
   score: string | null; verdict: string | null; owner_status: string; posted_url: string | null; intent_url?: string | null;
+  ab_group?: string | null; variant?: string | null; score_hidden?: boolean; ab_state?: string | null;
 };
 
 const base = (appId: string) => `/apps/${encodeURIComponent(appId)}/social-posts`;
 
 function line(p: Post): string {
-  const score = p.verdict ? `${p.verdict} ${p.score ?? ""}`.trim() : "unscored";
+  const score = p.score_hidden ? "score hidden (A/B, not picked yet)" : p.verdict ? `${p.verdict} ${p.score ?? ""}`.trim() : "unscored";
+  const ab = p.ab_group ? ` -- ${p.ab_group} version ${p.variant}${p.ab_state && p.ab_state !== "undecided" ? ` (${p.ab_state.replace("_", " ")})` : ""}` : "";
   const state = p.posted_url ? `posted ${p.posted_url}` : `owner ${p.owner_status}`;
-  return `${p.id} -- ${p.account} -- ${score} -- ${state} -- ${p.planned_at ?? "no time"} -- ${p.text.replace(/\s+/g, " ").slice(0, 80)}`;
+  return `${p.id} -- ${p.account}${ab} -- ${score} -- ${state} -- ${p.planned_at ?? "no time"} -- ${p.text.replace(/\s+/g, " ").slice(0, 80)}`;
 }
 
-export async function listSocialPosts(appId: string, options: { view?: string }): Promise<void> {
+export async function listSocialPosts(appId: string, options: { view?: string; revealScores?: boolean }): Promise<void> {
   const view = options.view ?? "all";
-  const body = await handleApiResponse<{ posts: Post[] }>(apiFetch(`${base(appId)}?view=${encodeURIComponent(view)}`));
+  const reveal = options.revealScores ? "&reveal_scores=1" : "";
+  const body = await handleApiResponse<{ posts: Post[] }>(apiFetch(`${base(appId)}?view=${encodeURIComponent(view)}${reveal}`));
   if (!body) return;
   if (body.posts.length === 0) { console.log(`No posts (${view}).`); return; }
   for (const p of body.posts) {
@@ -30,9 +33,13 @@ export async function listSocialPosts(appId: string, options: { view?: string })
 
 export async function addSocialPost(
   appId: string,
-  options: { account: string; text: string; link?: string; image?: string; alt?: string; at?: string },
+  options: { account: string; text: string; link?: string; image?: string; alt?: string; at?: string; abGroup?: string; variant?: string },
 ): Promise<void> {
   const payload: Record<string, unknown> = { account: options.account, text: options.text };
+  if (options.abGroup || options.variant) {
+    payload.ab_group = options.abGroup;
+    payload.variant = options.variant?.toUpperCase();
+  }
   if (options.link) payload.link = options.link;
   if (options.image) payload.image_asset_id = options.image;
   if (options.alt) payload.alt_text = options.alt;

@@ -33,4 +33,17 @@ describe("social-posts (#438)", () => {
   it("has no review command", () => {
     expect(Object.keys(sp).some((k) => /review/i.test(k))).toBe(false);
   });
+  it("A/B: sends ab_group + variant; --reveal-scores asks explicitly; a hidden score says so", async () => {
+    const out: string[] = []; vi.spyOn(console, "log").mockImplementation((m: string) => { out.push(m); });
+    apiFetch.mockReturnValue(reply({ post: POST }));
+    await sp.addSocialPost("a1", { account: "x:@A", text: "t", abGroup: "g1", variant: "b" });
+    expect(JSON.parse(apiFetch.mock.calls[0][1].body)).toMatchObject({ ab_group: "g1", variant: "B" });
+    apiFetch.mockReturnValue(reply({ posts: [{ ...POST, ab_group: "g1", variant: "A", score: null, verdict: null, score_hidden: true, ab_state: "undecided" }] }));
+    await sp.listSocialPosts("a1", { view: "review" });
+    expect(apiFetch.mock.calls[1][0]).toBe("/apps/a1/social-posts?view=review");
+    expect(out.join("\n")).toContain("score hidden (A/B, not picked yet)");
+    await sp.listSocialPosts("a1", { view: "all", revealScores: true });
+    expect(apiFetch.mock.calls[2][0]).toBe("/apps/a1/social-posts?view=all&reveal_scores=1");
+  });
 });
+
