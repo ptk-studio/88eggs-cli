@@ -123,6 +123,63 @@ export function contentTypeForFile(path: string): string | null {
   return UPLOAD_CONTENT_TYPES[ext] ?? null;
 }
 
+// Multipart (88eggs-backend#425): documents over 90 MB (up to 650 MB) and PNG print files over 10 MB (up to 50 MB)
+// go up in parts straight to R2: start -> PUT each part (3 at a time, each retried up to 3x) -> complete; any final
+// failure aborts the upload so no parts are left behind. Smaller files keep the single PUT.
+export const MULTIPART_DOCUMENT_THRESHOLD = 90 * 1024 * 1024;
+export const MULTIPART_PNG_THRESHOLD = 10 * 1024 * 1024;
+const DOCUMENT_TYPES = new Set(["application/pdf", "application/epub+zip", "application/zip"]);
+
+export function useMultipart(contentType: string, size: number): boolean {
+  if (DOCUMENT_TYPES.has(contentType)) return size > MULTIPART_DOCUMENT_THRESHOLD;
+  if (contentType === "image/png") return size > MULTIPART_PNG_THRESHOLD;
+  return false;
+}
+
+type Started = { assetId: string; path: string; uploadId: string; partSize: number; parts: { partNumber: number; url: string }[] };
+
+export async function multipartUpload(
+  bytes: Uint8Array, contentType: string, filename: string, project: string, put: typeof fetch,
+  opts: { concurrency?: number; retries?: number; backoffMs?: number } = {},
+): Promise<void> {
+  const base = `/projects/${encodeURIComponent(project)}/assets/multipart`;
+  const started = await handleApiResponse<Started>(
+    apiFetch(`${base}/start`, { method: "POST", body: JSON.stringify({ contentType, size: bytes.length, filename }) }),
+  );
+  if (!started) return;
+  const { assetId, path, uploadId, partSize } = started;
+  const abort = () => apiFetch(`${base}/abort`, { method: "POST", body: JSON.stringify({ assetId, path, uploadId }) }).catch(() => {});
+  const retries = opts.retries ?? 3, backoff = opts.backoffMs ?? 1000;
+  const etags = new Map<number, string>();
+  const queue = [...started.parts];
+  const worker = async () => {
+    for (let part = queue.shift(); part; part = queue.shift()) {
+      const chunk = bytes.subarray((part.partNumber - 1) * partSize, part.partNumber * partSize);
+      for (let attempt = 1; ; attempt++) {
+        const res = await put(part.url, { method: "PUT", body: chunk }).catch(() => null);
+        const etag = res && res.ok ? res.headers.get("etag") : null;
+        if (etag) { etags.set(part.partNumber, etag); break; }
+        if (attempt >= retries) throw new Error(`part ${part.partNumber} failed${res ? ` (HTTP ${res.status})` : ""}`);
+        await new Promise((r) => setTimeout(r, backoff * attempt));
+      }
+    }
+  };
+  try {
+    await Promise.all(Array.from({ length: Math.min(opts.concurrency ?? 3, started.parts.length) }, worker));
+  } catch (error) {
+    await abort();
+    console.error(`Error: the upload to storage failed: ${(error as Error).message}. Nothing was kept.`);
+    process.exitCode = 1;
+    return;
+  }
+  const parts = [...etags.entries()].sort((a, b) => a[0] - b[0]).map(([partNumber, etag]) => ({ partNumber, etag }));
+  const confirmed = await handleApiResponse<{ asset: { id: string; type: string; name: string } }>(
+    apiFetch(`${base}/complete`, { method: "POST", body: JSON.stringify({ assetId, path, uploadId, parts, filename }) }),
+  );
+  if (!confirmed) { await abort(); return; }
+  console.log(`Uploaded ${confirmed.asset.type} "${confirmed.asset.name}" as asset ${confirmed.asset.id} (${bytes.length} bytes, ${parts.length} parts).`);
+}
+
 export async function uploadAsset(
   file: string,
   options: { project: string; name?: string },
@@ -137,6 +194,11 @@ export async function uploadAsset(
   const readFile = deps.readFile ?? (async (p: string) => new Uint8Array(await (await import("node:fs/promises")).readFile(p)));
   const bytes = await readFile(file);
   const filename = options.name ?? file.split("/").pop() ?? file;
+
+  if (useMultipart(contentType, bytes.length)) {
+    await multipartUpload(bytes, contentType, filename, options.project, deps.put ?? fetch);
+    return;
+  }
 
   const minted = await handleApiResponse<{ assetId: string; path: string; provider: string; uploadUrl: string }>(
     apiFetch(`/projects/${encodeURIComponent(options.project)}/assets/upload-url`, {
