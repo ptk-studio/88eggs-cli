@@ -236,6 +236,25 @@ export async function showPublicPage(slug: string): Promise<void> {
 // POST /apps/:appId/feedback-key -- issue (or rotate) a Feedback app's public
 // key and set the web origins allowed to post (88eggs-backend#341). The key is
 // not a secret: it only names which inbox a message goes to.
+// apps mail-key <appId> -- the project OWNER sets up a Mailing List app (88eggs-backend#424): issue or rotate its
+// public form key, set the https origins whose forms may post, and register the consent words the form shows.
+// The list's addresses are never shown here (counts and export live elsewhere; export only in app.88eggs.com).
+export async function mailKey(
+  appId: string,
+  options: { rotate?: boolean; origin?: string[]; consent?: string[] },
+): Promise<void> {
+  const body: { rotate: boolean; allowed_origins?: string[]; consent_texts?: string[] } = { rotate: Boolean(options.rotate) };
+  if (options.origin && options.origin.length > 0) body.allowed_origins = options.origin;
+  if (options.consent && options.consent.length > 0) body.consent_texts = options.consent;
+  const result = await handleApiResponse<{ mail_public_key: string; mail_allowed_origins: string[]; consent?: { id: number; text: string }[] }>(
+    apiFetch(`/apps/${appId}/mail-key`, { method: "POST", body: JSON.stringify(body) }),
+  );
+  if (!result) return;
+  console.log(`Mailing list key: ${result.mail_public_key}`);
+  console.log(`Allowed origins: ${result.mail_allowed_origins.join(", ") || "(none: no site can post yet)"}`);
+  if (result.consent) for (const c of result.consent) console.log(`Consent text ${c.id}: ${c.text}`);
+}
+
 export async function feedbackKey(
   appId: string,
   options: { rotate?: boolean; origin?: string[] },

@@ -45,6 +45,7 @@ import {
   updateAppPage,
   showPublicPage,
   feedbackKey,
+  mailKey,
 } from "./commands/apps.js";
 import { deleteFeedback, listFeedback, setFeedbackStatus } from "./commands/feedback.js";
 import {
@@ -432,6 +433,14 @@ apps
   .option("--rotate", "replace the key (the old one stops working at once)")
   .option("--origin <origin...>", "a web origin allowed to post, e.g. https://ptk-studio.com (repeatable)")
   .action(feedbackKey);
+
+apps
+  .command("mail-key <appId>")
+  .description("Set up an installed Mailing List app (project owner): its public form key, allowed https origins and consent words")
+  .option("--rotate", "replace the key (the old one stops working at once)")
+  .option("--origin <origin...>", "an https origin whose form may post, e.g. https://nurseisangel.com (repeatable)")
+  .option("--consent <text...>", "the consent words the form shows next to the unticked box (repeatable; replaces the current set)")
+  .action(mailKey);
 
 apps
   .command("catalog")
