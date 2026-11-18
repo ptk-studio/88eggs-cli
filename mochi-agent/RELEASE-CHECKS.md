@@ -16,9 +16,9 @@ checkout. **A failure here stops the release.**
 | F1 | **Install the packed package** (`npm pack`) into an empty prefix, the way `npm install -g 88eggs-cli` does, with an **empty HOME** (no `~/.88eggs/`) | `tools/first-run.sh`: `PASS install of the packed …` |
 | F2 | `--version` prints the version in `package.json`; `--help` lists the commands | `PASS` rows |
 | F3 | **Never signed in:** `whoami` and a command that needs an account (`projects list`) say to run `88eggs login`, exit 1, **no stack trace**, and no credentials file is written | `PASS` rows; `tools/first-run.sh` exits 0 |
-| F4 | **The first sign-in** (`88eggs login`, the browser flow) **with a test account**, then one read (`projects list`) and `logout`; the credentials file is mode `600`. Never the Owner's account | noted in the PR (account: the test one; date) |
+| F4 | **The first sign-in** (`88eggs login`, the browser flow) **with a test account against a local or staging backend** (`EGGS_API_URL=<that backend>`), then one read (`projects list`) and `logout`; the credentials file is mode `600`. A test account on production needs the Owner's yes first; no agent signs in with the Owner's account | noted in the PR (environment, account: the test one; date) |
 | F5 | **A changed command, first use:** run it once against a test project (the scratch app `47Q1hn62ASKu-GLLbJ0RP` for Social Posts), including its error path (a wrong id → a clear message, exit 1) | the commands and their output in the PR |
-| F6 | **The scorecard line:** *"First run on a fresh install: PASS (evidence: tools/first-run.sh output + the test-account sign-in, date)"* | in the PR |
+| F6 | **The scorecard line:** *"First run on a fresh install: PASS (evidence: tools/first-run.sh output + the local/staging test-account sign-in, date)"* | in the PR |
 
 ```
 bash tools/first-run.sh      # F1–F3; needs npm and network for the dependencies, no account
