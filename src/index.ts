@@ -48,6 +48,7 @@ import {
   mailKey,
 } from "./commands/apps.js";
 import { deleteFeedback, listFeedback, setFeedbackStatus } from "./commands/feedback.js";
+import { addSocialPost, editSocialPost, listSocialPosts, markSocialPostPosted, scoreSocialPost } from "./commands/social-posts.js";
 import {
   addRow,
   createDataTable,
@@ -215,6 +216,20 @@ assets
   .description("Move an asset to a different project")
   .allowUnknownOption()
   .action((assetId: string, projectId: string) => moveAsset(assetId, projectId));
+
+const socialPosts = program
+  .command("social-posts")
+  .description("The Social Posts app's queue (no review command: the owner reviews in app.88eggs.com)");
+socialPosts.command("list <appId>").description("List posts").option("--view <view>", "today | review | all", "all").action(listSocialPosts);
+socialPosts.command("add <appId>").description("Add a draft post")
+  .requiredOption("--account <account>", "e.g. x:@PTKStudio88").requiredOption("--text <text>", "the post text (≤ 280)")
+  .option("--link <url>", "an https link").option("--image <assetId>", "an image asset").option("--alt <text>", "the image's alt text")
+  .option("--at <iso>", "planned time, ISO with offset").action(addSocialPost);
+socialPosts.command("edit <appId> <postId>").description("Edit a post (an OK'd post goes back to pending)")
+  .option("--text <text>").option("--link <url>").option("--image <assetId>").option("--alt <text>").option("--at <iso>").action(editSocialPost);
+socialPosts.command("score <appId> <postId>").description("The manager's score and verdict")
+  .requiredOption("--score <0-5>").requiredOption("--verdict <PASS|FIX|FAIL>").option("--note <text>").action(scoreSocialPost);
+socialPosts.command("posted <appId> <postId> <postUrl>").description("Record the X post's URL after a person posted it").action(markSocialPostPosted);
 
 const tasks = program
   .command("tasks")
