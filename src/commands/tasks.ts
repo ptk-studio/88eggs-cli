@@ -32,7 +32,7 @@ type TaskRun = {
   inputs: Record<string, unknown>;
   outputs: Record<string, unknown> | null;
   name: string | null;
-  status: "queued" | "accepted" | "running" | "succeeded" | "failed";
+  status: "queued" | "accepted" | "running" | "succeeded" | "failed" | "blocked";
   error: string | null;
   cost_usd: number | null;
   created_at: string;
