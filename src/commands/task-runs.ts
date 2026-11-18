@@ -10,7 +10,8 @@ type TaskRun = {
   inputs: Record<string, unknown>;
   outputs: Record<string, unknown> | null;
   name: string | null;
-  status: "queued" | "accepted" | "running" | "succeeded" | "failed";
+  // "blocked": an upload cap stopped it before it ran (88eggs-backend#384) -- terminal, not a failure.
+  status: "queued" | "accepted" | "running" | "succeeded" | "failed" | "blocked";
   error: string | null;
   cost_usd: number | null;
   created_at: string;
@@ -78,7 +79,7 @@ export async function taskRunStatus(taskRunId: string): Promise<void> {
   }
   console.log(`Task: ${taskRun.task_id}`);
   console.log(`Project: ${taskRun.project_id}`);
-  console.log(`Status: ${taskRun.status}`);
+  console.log(`Status: ${taskRun.status}${taskRun.status === "blocked" ? " (an upload cap; not a failure, nothing posted or charged)" : ""}`);
   if (taskRun.model) {
     console.log(`Model: ${taskRun.model}${taskRun.model_provider ? ` (${taskRun.model_provider})` : ""}`);
   }
@@ -89,7 +90,7 @@ export async function taskRunStatus(taskRunId: string): Promise<void> {
     console.log(`Result asset: ${taskRun.result_asset_id}`);
   }
   if (taskRun.error) {
-    console.log(`Error: ${taskRun.error}`);
+    console.log(`${taskRun.status === "blocked" ? "Why" : "Error"}: ${taskRun.error}`);
   }
   console.log(`Updated: ${taskRun.updated_at}`);
 

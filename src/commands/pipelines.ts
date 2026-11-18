@@ -29,7 +29,8 @@ type PipelineRunSummary = {
   pipeline_id: string;
   project_id: string;
   name: string | null;
-  status: "running" | "to_be_reviewed" | "completed" | "failed";
+  // "blocked": an upload cap stopped a step (88eggs-backend#384); "skipped": a guard found nothing to do.
+  status: "running" | "to_be_reviewed" | "completed" | "failed" | "blocked" | "skipped";
   current_step_key: string | null;
   error: string | null;
   cost_usd: string | number | null;
@@ -223,7 +224,8 @@ export async function pipelineRunStatus(pipelineRunId: string): Promise<void> {
     console.log(`Current step: ${pipelineRun.current_step_key}`);
   }
   if (pipelineRun.error) {
-    console.log(`Error: ${pipelineRun.error}`);
+    // A blocked run isn't an error: say what it is.
+    console.log(`${pipelineRun.status === "blocked" ? "Blocked (upload cap; the item goes back in the queue)" : "Error"}: ${pipelineRun.error}`);
   }
   if (pipelineRun.cost_usd !== null) {
     console.log(`Cost: $${pipelineRun.cost_usd}`);
