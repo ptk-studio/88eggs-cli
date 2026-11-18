@@ -16,6 +16,8 @@ describe("assets upload", () => {
     expect(contentTypeForFile("x.mp4")).toBe("video/mp4");
     expect(contentTypeForFile("books/interior.PDF")).toBe("application/pdf");
     expect(contentTypeForFile("x.jpeg")).toBe("image/jpeg");
+    expect(contentTypeForFile("kindle/star/kindle.EPUB")).toBe("application/epub+zip");
+    expect(contentTypeForFile("kindle-create-jpgs.zip")).toBe("application/zip");
     expect(contentTypeForFile("x.avi")).toBeNull();
   });
 
