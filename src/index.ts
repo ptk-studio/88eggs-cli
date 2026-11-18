@@ -167,7 +167,7 @@ const assets = program.command("assets").description("Browse and manage assets")
 
 assets
   .command("upload <file>")
-  .description("Upload an image (png/jpg/webp, max 10 MB) or a video (mp4/mov, max 200 MB) to a project's assets")
+  .description("Upload an image (png/jpg/webp, max 10 MB), a video (mp4/mov, max 200 MB) or a PDF (max 100 MB) to a project's assets")
   .requiredOption("--project <projectId>", "the project to upload into")
   .option("--name <name>", "the asset's name (default: the file name)")
   .action((file, options) => uploadAsset(file, options));
