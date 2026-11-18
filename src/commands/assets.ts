@@ -101,7 +101,7 @@ export async function moveAsset(assetId: string, projectId: string): Promise<voi
   console.log(`Moved ${assetId} to project ${asset.project_id}.`);
 }
 
-// assets upload <file> -- upload an image or a video through the signed-URL
+// assets upload <file> -- upload an image, a video or a PDF through the signed-URL
 // path (88eggs-backend#404): upload-url -> PUT the bytes straight to storage
 // -> confirm. Videos (mp4/mov, up to 200 MB) can only go this way.
 export const UPLOAD_CONTENT_TYPES: Record<string, string> = {
@@ -111,6 +111,8 @@ export const UPLOAD_CONTENT_TYPES: Record<string, string> = {
   webp: "image/webp",
   mp4: "video/mp4",
   mov: "video/quicktime",
+  // PDFs (books, covers, print files; up to 100 MB, 88eggs-backend#425), stored as type "document".
+  pdf: "application/pdf",
 };
 
 export function contentTypeForFile(path: string): string | null {

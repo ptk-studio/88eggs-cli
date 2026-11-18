@@ -14,6 +14,7 @@ describe("assets upload", () => {
   it("maps extensions to content types", () => {
     expect(contentTypeForFile("a/clip.MOV")).toBe("video/quicktime");
     expect(contentTypeForFile("x.mp4")).toBe("video/mp4");
+    expect(contentTypeForFile("books/interior.PDF")).toBe("application/pdf");
     expect(contentTypeForFile("x.jpeg")).toBe("image/jpeg");
     expect(contentTypeForFile("x.avi")).toBeNull();
   });
