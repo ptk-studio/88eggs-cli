@@ -1,5 +1,7 @@
 # Agent guidelines — 88eggs-cli
 
+**Before any release: run every check in `mochi-agent/RELEASE-CHECKS.md`; the First run section is blocking** (`tools/first-run.sh`).
+
 A small **TypeScript** Node CLI (`commander`) that signs in to 88eggs'
 existing Supabase project and calls `88eggs-backend`. See `README.md`
 for the auth flow design before making non-trivial changes.
