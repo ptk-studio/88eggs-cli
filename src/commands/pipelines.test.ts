@@ -69,4 +69,15 @@ describe("pipelines: a slug is looked up on every page (#44)", () => {
     expect(String(apiFetch.mock.calls[0][0])).toContain("projectId=pB");
     expect(String(apiFetch.mock.calls[1][0])).toBe("/pipelines/id2");
   });
+
+  it("show --project: passes the project, so the slug in that project is found and the other is not an error", async () => {
+    apiFetch
+      .mockResolvedValueOnce(json({ pipelines: [pl(1, { slug: "dup", project_id: "pA" })], total: 1 }))
+      .mockResolvedValueOnce(json({ ...pl(1, { slug: "dup", project_id: "pA" }), inputs: [] }));
+    const lines = out();
+    await showPipeline("dup", { project: "pA" });
+    expect(String(apiFetch.mock.calls[0][0])).toContain("projectId=pA");
+    expect(lines[0]).toBe("Pipeline 1 (dup)");
+    expect(process.exitCode).not.toBe(1);
+  });
 });
