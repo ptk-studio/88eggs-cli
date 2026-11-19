@@ -91,6 +91,13 @@ import {
   showSchedule,
   updateSchedule,
 } from "./commands/schedules.js";
+import {
+  listPipelineSetRuns,
+  listPipelineSets,
+  showPipelineSet,
+  showPipelineSetRun,
+  validatePipelineSet,
+} from "./commands/pipeline-sets.js";
 import { cloneTemplate, listTemplates, showTemplate } from "./commands/templates.js";
 import { listModels } from "./commands/models.js";
 import { showProfile, updateProfile } from "./commands/profile.js";
@@ -868,8 +875,9 @@ schedules
   .action((scheduleId: string) => showSchedule(scheduleId));
 schedules
   .command("create")
-  .description("Create a recurring schedule for a pipeline definition")
-  .requiredOption("--definition <slug>", "the pipeline definition to run")
+  .description("Create a recurring schedule for a pipeline definition, or for an active Pipeline Set (--set)")
+  .option("--definition <slug>", "the pipeline definition to run")
+  .option("--set <slug>", "an ACTIVE pipeline set to run instead (give exactly one of --definition and --set)")
   .requiredOption("--cron <expr>", "a cron expression")
   .requiredOption("--name <name>", "a name for the schedule")
   .option("--timezone <tz>", "IANA timezone (default UTC)")
@@ -884,6 +892,7 @@ schedules
   .action(
     (options: {
       definition?: string;
+      set?: string;
       cron?: string;
       name?: string;
       timezone?: string;
@@ -925,6 +934,45 @@ schedules
   .description("Delete a schedule (past pipelines unaffected)")
   .allowUnknownOption()
   .action((scheduleId: string) => deleteSchedule(scheduleId));
+
+const pipelineSets = program
+  .command("pipeline-sets")
+  .description("Read Pipeline Sets (read-only; starting, editing and publishing are done in the app)");
+pipelineSets
+  .command("list")
+  .description("List the pipeline sets of your projects")
+  .option("--project <projectId>", "only this project")
+  .option("--status <status>", "draft | active | archived (archived are hidden unless asked for)")
+  .option("--query <text>", "search the name and description")
+  .option("--json", "print JSON")
+  .action((options: { project?: string; status?: string; query?: string; json?: boolean }) => listPipelineSets(options));
+pipelineSets
+  .command("show <idOrSlug>")
+  .description("Show a set: steps, inputs, ceiling, estimated cost and whether it validates")
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .option("--json", "print JSON")
+  .action((ref: string, options: { project?: string; json?: boolean }) => showPipelineSet(ref, options));
+pipelineSets
+  .command("validate <idOrSlug>")
+  .description("Check that a set validates now (exit code 1 when it does not)")
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .action((ref: string, options: { project?: string }) => validatePipelineSet(ref, options));
+
+const pipelineSetRuns = program.command("pipeline-set-runs").description("Read Pipeline Set runs (read-only)");
+pipelineSetRuns
+  .command("list")
+  .description("List set runs, newest first")
+  .option("--project <projectId>", "only this project")
+  .option("--set <idOrSlug>", "only runs of this set")
+  .option("--status <status>", "running | paused | failed | completed | cancelled ...")
+  .option("--needs-me", "only runs that are paused or failed")
+  .option("--json", "print JSON")
+  .action((options: { project?: string; set?: string; status?: string; needsMe?: boolean; json?: boolean }) => listPipelineSetRuns(options));
+pipelineSetRuns
+  .command("status <runId>")
+  .description("Show one set run: status, cost against the ceiling, and each step")
+  .option("--json", "print JSON")
+  .action((runId: string, options: { json?: boolean }) => showPipelineSetRun(runId, options));
 
 const templates = program
   .command("templates")

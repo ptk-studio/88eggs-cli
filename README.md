@@ -114,10 +114,16 @@ npm link   # makes the `88eggs` command available globally
 
 88eggs schedules list [--project <projectId>]
 88eggs schedules show <scheduleId>
-88eggs schedules create --definition <slug> --cron "<expr>" --name <name>
+88eggs schedules create (--definition <slug> | --set <slug>) --cron "<expr>" --name <name>
                                             # [--timezone <tz>] [--project <id>] [--param k=v ...] [--disabled]
 88eggs schedules update <scheduleId> [--name] [--cron] [--timezone] [--enable|--disable] [--param k=v ...]
 88eggs schedules delete <scheduleId>
+
+88eggs pipeline-sets list [--project <id>] [--status draft|active|archived] [--query <text>] [--json]   # read-only
+88eggs pipeline-sets show <idOrSlug> [--project <id>] [--json]   # steps, ceiling, estimate, validation
+88eggs pipeline-sets validate <idOrSlug> [--project <id>]        # exit code 1 when it does not validate
+88eggs pipeline-set-runs list [--project <id>] [--set <idOrSlug>] [--status <s>] [--needs-me] [--json]
+88eggs pipeline-set-runs status <runId> [--json]                 # cost against the ceiling, each step
 
 88eggs templates list [--type <type>] [--q <query>]
 88eggs templates show <templateId>
