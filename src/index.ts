@@ -308,7 +308,8 @@ pipelines
   .command("show <slug>")
   .description("Show one pipeline's detail + parameter spec")
   .allowUnknownOption()
-  .action((slug: string) => showPipeline(slug));
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .action((slug: string, options: { project?: string }) => showPipeline(slug, options));
 
 pipelines
   .command("start <slug>")
@@ -330,7 +331,8 @@ pipelines
   .command("clone <slug>")
   .description('Duplicate a pipeline within its own project ("<name> (Copy)")')
   .allowUnknownOption()
-  .action((slug: string) => clonePipeline(slug));
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .action((slug: string, options: { project?: string }) => clonePipeline(slug, options));
 
 pipelines
   .command("publish <slug>")
@@ -338,7 +340,8 @@ pipelines
   .allowUnknownOption()
   .option("--name <name>", "template name (defaults to the pipeline's)")
   .option("--description <text>", "template description")
-  .action((slug: string, options: { name?: string; description?: string }) =>
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .action((slug: string, options: { name?: string; description?: string; project?: string }) =>
     publishPipeline(slug, options),
   );
 
@@ -346,13 +349,15 @@ pipelines
   .command("archive <slug>")
   .description("Archive a pipeline (retire it from the active catalog)")
   .allowUnknownOption()
-  .action((slug: string) => archivePipeline(slug));
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .action((slug: string, options: { project?: string }) => archivePipeline(slug, options));
 
 pipelines
   .command("restore <slug>")
   .description("Restore an archived pipeline to active")
   .allowUnknownOption()
-  .action((slug: string) => restorePipeline(slug));
+  .option("--project <projectId>", "needed when the slug is in more than one project")
+  .action((slug: string, options: { project?: string }) => restorePipeline(slug, options));
 
 const pipelineRuns = program
   .command("pipeline-runs")

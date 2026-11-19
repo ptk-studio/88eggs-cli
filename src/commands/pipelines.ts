@@ -14,6 +14,7 @@ type PipelineSummary = {
   slug: string;
   name: string;
   description: string;
+  project_id?: string;
   created_at: string;
 };
 
@@ -62,18 +63,36 @@ type PipelineRunListResponse = {
   total: number;
 };
 
+// A slug is only unique inside one project (#27), so two matches means: say which project (--project).
+// Page through every pipeline (100 a page, the backend's cap) so one past the first page is still found (#44).
 async function resolvePipelineBySlug(
   slug: string,
+  project?: string,
 ): Promise<PipelineDetail | null> {
-  const list = await handleApiResponse<{ pipelines: PipelineSummary[] }>(
-    apiFetch("/pipelines"),
-  );
-  if (!list) {
+  const all: PipelineSummary[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const q = new URLSearchParams({ limit: "100", page: String(page) });
+    if (project) q.set("projectId", project);
+    const list = await handleApiResponse<{ pipelines: PipelineSummary[]; total?: number }>(
+      apiFetch(`/pipelines?${q}`),
+    );
+    if (!list) {
+      return null;
+    }
+    all.push(...list.pipelines);
+    if (list.pipelines.length === 0 || all.length >= (list.total ?? 0)) break;
+  }
+  const matches = all.filter((pipeline) => pipeline.slug === slug);
+  if (matches.length > 1) {
+    console.error(
+      `Error: The slug "${slug}" is in ${matches.length} projects (${matches.map((m) => m.project_id ?? m.id).join(", ")}). Add --project <projectId>.`,
+    );
+    process.exitCode = 1;
     return null;
   }
-  const match = list.pipelines.find((pipeline) => pipeline.slug === slug);
+  const match = matches[0];
   if (!match) {
-    console.error(`Error: No pipeline found with slug "${slug}".`);
+    console.error(`Error: No pipeline found with slug "${slug}"${project ? ` in project ${project}` : ""}.`);
     process.exitCode = 1;
     return null;
   }
@@ -103,8 +122,8 @@ export async function listPipelines(
   }
 }
 
-export async function showPipeline(slug: string): Promise<void> {
-  const pipeline = await resolvePipelineBySlug(slug);
+export async function showPipeline(slug: string, options: { project?: string } = {}): Promise<void> {
+  const pipeline = await resolvePipelineBySlug(slug, options.project);
   if (!pipeline) {
     return;
   }
@@ -138,7 +157,7 @@ export async function startPipelineRun(
   slug: string,
   options: { project?: string; name?: string; param: string[] },
 ): Promise<void> {
-  const pipeline = await resolvePipelineBySlug(slug);
+  const pipeline = await resolvePipelineBySlug(slug, options.project);
   if (!pipeline) {
     return;
   }
@@ -289,8 +308,8 @@ export async function retryPipelineRun(pipelineRunId: string): Promise<void> {
   console.log(`Pipeline run ${pipelineRun.id} ${pipelineRun.status} -- retrying from ${pipelineRun.current_step_key ?? "the failed step"}.`);
 }
 
-export async function clonePipeline(slug: string): Promise<void> {
-  const def = await resolvePipelineBySlug(slug);
+export async function clonePipeline(slug: string, options: { project?: string } = {}): Promise<void> {
+  const def = await resolvePipelineBySlug(slug, options.project);
   if (!def) return;
   const clone = await handleApiResponse<{ id: string; slug: string; name: string }>(
     apiFetch(`/pipelines/${def.id}/clone`, { method: "POST" }),
@@ -301,9 +320,9 @@ export async function clonePipeline(slug: string): Promise<void> {
 
 export async function publishPipeline(
   slug: string,
-  options: { name?: string; description?: string },
+  options: { name?: string; description?: string; project?: string },
 ): Promise<void> {
-  const def = await resolvePipelineBySlug(slug);
+  const def = await resolvePipelineBySlug(slug, options.project);
   if (!def) return;
   const tpl = await handleApiResponse<{ id: string; name: string }>(
     apiFetch(`/pipelines/${def.id}/publish`, {
@@ -315,8 +334,8 @@ export async function publishPipeline(
   console.log(`Published "${def.name}" as template ${tpl.id} "${tpl.name}".`);
 }
 
-async function setPipelineStatus(slug: string, status: "active" | "archived"): Promise<void> {
-  const def = await resolvePipelineBySlug(slug);
+async function setPipelineStatus(slug: string, status: "active" | "archived", project?: string): Promise<void> {
+  const def = await resolvePipelineBySlug(slug, project);
   if (!def) return;
   const updated = await handleApiResponse<{ id: string; name: string }>(
     apiFetch(`/pipelines/${def.id}`, {
@@ -328,12 +347,12 @@ async function setPipelineStatus(slug: string, status: "active" | "archived"): P
   console.log(`${status === "archived" ? "Archived" : "Restored"} pipeline "${def.name}".`);
 }
 
-export async function archivePipeline(slug: string): Promise<void> {
-  await setPipelineStatus(slug, "archived");
+export async function archivePipeline(slug: string, options: { project?: string } = {}): Promise<void> {
+  await setPipelineStatus(slug, "archived", options.project);
 }
 
-export async function restorePipeline(slug: string): Promise<void> {
-  await setPipelineStatus(slug, "active");
+export async function restorePipeline(slug: string, options: { project?: string } = {}): Promise<void> {
+  await setPipelineStatus(slug, "active", options.project);
 }
 
 function specOf(item: { inputs?: PipelineParameter[]; parameters?: PipelineParameter[] }): PipelineParameter[] {
