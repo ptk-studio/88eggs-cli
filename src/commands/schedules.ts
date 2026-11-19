@@ -105,6 +105,7 @@ export async function showSchedule(scheduleId: string): Promise<void> {
 
 export async function createSchedule(options: {
   definition?: string;
+  set?: string;
   cron?: string;
   timezone?: string;
   name?: string;
@@ -112,8 +113,14 @@ export async function createSchedule(options: {
   param: string[];
   disabled?: boolean;
 }): Promise<void> {
-  if (!options.definition || !options.cron || !options.name) {
-    console.error("Error: --definition <slug>, --cron <expr>, and --name are required.");
+  if (!options.cron || !options.name) {
+    console.error("Error: --cron <expr> and --name are required.");
+    process.exitCode = 1;
+    return;
+  }
+  // A schedule runs a pipeline OR a Pipeline Set (88eggs-backend#554), never both. The backend refuses a set that is not active.
+  if (Boolean(options.definition) === Boolean(options.set)) {
+    console.error("Error: give exactly one of --definition <slug> and --set <slug>.");
     process.exitCode = 1;
     return;
   }
@@ -129,7 +136,7 @@ export async function createSchedule(options: {
     apiFetch("/pipeline-schedules", {
       method: "POST",
       body: JSON.stringify({
-        definitionSlug: options.definition,
+        ...(options.set ? { setSlug: options.set } : { definitionSlug: options.definition }),
         cron: options.cron,
         timezone: options.timezone,
         name: options.name,

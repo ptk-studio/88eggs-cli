@@ -34,3 +34,38 @@ describe("schedules blocked (#327)", () => {
     expect(lines).toEqual(["No blocked schedules."]);
   });
 });
+
+describe("schedules create --set (backend#554)", () => {
+  afterEach(() => { apiFetch.mockReset(); vi.restoreAllMocks(); process.exitCode = 0; });
+  it("sends setSlug and no definitionSlug for a set", async () => {
+    const { createSchedule } = await import("./schedules.js");
+    apiFetch.mockResolvedValue(new Response(JSON.stringify({ id: "sc1", name: "Songs", cron: "0 9 * * *", timezone: "UTC" }), { status: 201 }));
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await createSchedule({ set: "song-story-maker", cron: "0 9 * * *", name: "Songs", param: ["topic=Tahoe"] });
+    const body = JSON.parse((apiFetch.mock.calls[0][1] as { body: string }).body);
+    expect(body.setSlug).toBe("song-story-maker");
+    expect("definitionSlug" in body).toBe(false);
+    expect(body.inputs).toEqual({ topic: "Tahoe" });
+  });
+  it("still sends definitionSlug for a pipeline", async () => {
+    const { createSchedule } = await import("./schedules.js");
+    apiFetch.mockResolvedValue(new Response(JSON.stringify({ id: "sc1", name: "M", cron: "0 9 * * *", timezone: "UTC" }), { status: 201 }));
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await createSchedule({ definition: "meme", cron: "0 9 * * *", name: "M", param: [] });
+    const body = JSON.parse((apiFetch.mock.calls[0][1] as { body: string }).body);
+    expect(body.definitionSlug).toBe("meme");
+    expect("setSlug" in body).toBe(false);
+  });
+  it("refuses both or neither locally (exit 1, nothing sent)", async () => {
+    const { createSchedule } = await import("./schedules.js");
+    const e: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((l) => { e.push(String(l)); });
+    await createSchedule({ definition: "meme", set: "s", cron: "* * * * *", name: "x", param: [] });
+    expect(process.exitCode).toBe(1);
+    process.exitCode = 0;
+    await createSchedule({ cron: "* * * * *", name: "x", param: [] });
+    expect(process.exitCode).toBe(1);
+    expect(e.every((l) => l.includes("exactly one of --definition"))).toBe(true);
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+});
