@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { cliVersion } from "./lib/version.js";
 import { login } from "./commands/login.js";
 import { logout } from "./commands/logout.js";
 import { whoami } from "./commands/whoami.js";
@@ -115,7 +116,7 @@ import {
 
 const program = new Command();
 
-program.name("88eggs").description("CLI for 88eggs").version("0.12.0");
+program.name("88eggs").description("CLI for 88eggs").version(cliVersion);
 
 program
   .command("login")
