@@ -14,6 +14,7 @@ type PipelineSummary = {
   slug: string;
   name: string;
   description: string;
+  project_id?: string;
   created_at: string;
 };
 
@@ -62,18 +63,36 @@ type PipelineRunListResponse = {
   total: number;
 };
 
+// A slug is only unique inside one project (#27), so two matches means: say which project (--project).
+// Page through every pipeline (100 a page, the backend's cap) so one past the first page is still found (#44).
 async function resolvePipelineBySlug(
   slug: string,
+  project?: string,
 ): Promise<PipelineDetail | null> {
-  const list = await handleApiResponse<{ pipelines: PipelineSummary[] }>(
-    apiFetch("/pipelines"),
-  );
-  if (!list) {
+  const all: PipelineSummary[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const q = new URLSearchParams({ limit: "100", page: String(page) });
+    if (project) q.set("projectId", project);
+    const list = await handleApiResponse<{ pipelines: PipelineSummary[]; total?: number }>(
+      apiFetch(`/pipelines?${q}`),
+    );
+    if (!list) {
+      return null;
+    }
+    all.push(...list.pipelines);
+    if (list.pipelines.length === 0 || all.length >= (list.total ?? 0)) break;
+  }
+  const matches = all.filter((pipeline) => pipeline.slug === slug);
+  if (matches.length > 1) {
+    console.error(
+      `Error: The slug "${slug}" is in ${matches.length} projects (${matches.map((m) => m.project_id ?? m.id).join(", ")}). Add --project <projectId>.`,
+    );
+    process.exitCode = 1;
     return null;
   }
-  const match = list.pipelines.find((pipeline) => pipeline.slug === slug);
+  const match = matches[0];
   if (!match) {
-    console.error(`Error: No pipeline found with slug "${slug}".`);
+    console.error(`Error: No pipeline found with slug "${slug}"${project ? ` in project ${project}` : ""}.`);
     process.exitCode = 1;
     return null;
   }
@@ -138,7 +157,7 @@ export async function startPipelineRun(
   slug: string,
   options: { project?: string; name?: string; param: string[] },
 ): Promise<void> {
-  const pipeline = await resolvePipelineBySlug(slug);
+  const pipeline = await resolvePipelineBySlug(slug, options.project);
   if (!pipeline) {
     return;
   }
