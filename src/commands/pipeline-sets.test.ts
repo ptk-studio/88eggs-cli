@@ -133,6 +133,20 @@ describe("pipeline-set-runs (read only)", () => {
     expect(text).toContain("Error (step_failed): boom");
     expect(text).toContain("lyrics (Write the lyrics) -- ready -- $0.40");
   });
+  it("status: an id with / or ? is encoded and cannot reach another path", async () => {
+    apiFetch.mockResolvedValue(json({ ...run(), steps: [] }));
+    out();
+    await showPipelineSetRun("a/b?c", {});
+    expect(String(apiFetch.mock.calls[0][0])).toBe("/pipeline-set-runs/a%2Fb%3Fc");
+  });
+  it("show: a set beyond the first 100 is still found (pages through the list)", async () => {
+    const first = Array.from({ length: 100 }, (_, n) => set({ id: `x${n}`, slug: `s${n}` }));
+    apiFetch.mockResolvedValueOnce(json({ sets: first, total: 101 })).mockResolvedValueOnce(json({ sets: [set({ id: "last", slug: "late" })], total: 101 })).mockResolvedValueOnce(json({ ...set({ id: "last", slug: "late" }), steps: [] }));
+    out();
+    await showPipelineSet("late", {});
+    expect(String(apiFetch.mock.calls[1][0])).toContain("page=2");
+    expect(String(apiFetch.mock.calls[2][0])).toBe("/pipeline-sets/last");
+  });
   it("status: a run that is not found is an error line and exit code 1, no stack", async () => {
     apiFetch.mockResolvedValue(json({ error: "Not found" }, 404));
     const e = errs();

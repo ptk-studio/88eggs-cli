@@ -60,13 +60,19 @@ function fail(message: string): null {
 
 // A set by its id or its slug. A slug is only unique inside one project, so two matches means: say which project (--project).
 async function resolveSet(ref: string, project?: string): Promise<SetSummary | null> {
-  const q = new URLSearchParams({ limit: "100" });
-  if (project) q.set("projectId", project);
-  const body = await handleApiResponse<{ sets: SetSummary[] }>(apiFetch(`/pipeline-sets?${q}`));
-  if (!body) return null;
-  const byId = body.sets.find((s) => s.id === ref);
+  // Page through every set (100 a page) so a set beyond the first page is still found.
+  const all: SetSummary[] = [];
+  for (let page = 1; page <= 50; page++) {
+    const q = new URLSearchParams({ limit: "100", page: String(page) });
+    if (project) q.set("projectId", project);
+    const body = await handleApiResponse<{ sets: SetSummary[]; total: number }>(apiFetch(`/pipeline-sets?${q}`));
+    if (!body) return null;
+    all.push(...body.sets);
+    if (body.sets.length === 0 || all.length >= body.total) break;
+  }
+  const byId = all.find((s) => s.id === ref);
   if (byId) return byId;
-  const bySlug = body.sets.filter((s) => s.slug === ref);
+  const bySlug = all.filter((s) => s.slug === ref);
   if (bySlug.length === 1) return bySlug[0]!;
   if (bySlug.length > 1) {
     return fail(`The slug "${ref}" is in ${bySlug.length} projects (${bySlug.map((s) => s.project_id).join(", ")}). Add --project <projectId>.`);
@@ -98,7 +104,7 @@ export async function listPipelineSets(options: { project?: string; status?: str
 async function loadSet(ref: string, project?: string): Promise<SetDetail | null> {
   const found = await resolveSet(ref, project);
   if (!found) return null;
-  return handleApiResponse<SetDetail>(apiFetch(`/pipeline-sets/${found.id}`));
+  return handleApiResponse<SetDetail>(apiFetch(`/pipeline-sets/${encodeURIComponent(found.id)}`));
 }
 
 function printValidation(v: SetDetail["validation"]): void {
@@ -170,7 +176,7 @@ export async function listPipelineSetRuns(options: { project?: string; set?: str
 }
 
 export async function showPipelineSetRun(runId: string, options: { json?: boolean }): Promise<void> {
-  const run = await handleApiResponse<SetRunDetail>(apiFetch(`/pipeline-set-runs/${runId}`));
+  const run = await handleApiResponse<SetRunDetail>(apiFetch(`/pipeline-set-runs/${encodeURIComponent(runId)}`));
   if (!run) return;
   if (options.json) {
     console.log(JSON.stringify(run, null, 2));
