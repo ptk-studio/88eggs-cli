@@ -82,10 +82,13 @@ async function resolvePipelineBySlug(
     all.push(...list.pipelines);
     if (list.pipelines.length === 0 || all.length >= (list.total ?? 0)) break;
   }
-  const matches = all.filter((pipeline) => pipeline.slug === slug);
+  // An id is unique, so it names exactly one pipeline; a slug may be shared (clones of clones keep it).
+  const byId = all.filter((pipeline) => pipeline.id === slug);
+  const matches = byId.length === 1 ? byId : all.filter((pipeline) => pipeline.slug === slug);
   if (matches.length > 1) {
     console.error(
-      `Error: The slug "${slug}" is in ${matches.length} projects (${matches.map((m) => m.project_id ?? m.id).join(", ")}). Add --project <projectId>.`,
+      `Error: The slug "${slug}" matches ${matches.length} pipelines; nothing was changed. Use --project <projectId> or the pipeline id:\n` +
+        matches.map((m) => `  ${m.id}  "${m.name}"  project ${m.project_id ?? "?"}`).join("\n"),
     );
     process.exitCode = 1;
     return null;
