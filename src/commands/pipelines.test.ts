@@ -5,7 +5,7 @@ vi.mock("../lib/api.js", async () => {
   const actual = await vi.importActual<typeof import("../lib/api.js")>("../lib/api.js");
   return { ...actual, apiFetch: (...args: unknown[]) => apiFetch(...args) };
 });
-const { showPipeline, startPipelineRun } = await import("./pipelines.js");
+const { showPipeline, startPipelineRun, clonePipeline, archivePipeline } = await import("./pipelines.js");
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const pl = (n: number, over: Record<string, unknown> = {}) => ({ id: `id${n}`, slug: `slug-${n}`, name: `Pipeline ${n}`, description: "d", project_id: "p1", created_at: "2026-11-19", ...over });
@@ -56,7 +56,46 @@ describe("pipelines: a slug is looked up on every page (#44)", () => {
     expect(e[0]).toContain("pA");
     expect(e[0]).toContain("pB");
     expect(e[0]).toContain("--project");
+    expect(e[0]).toContain("id1");   // the match lines carry id, name and project
+    expect(e[0]).toContain("Pipeline 2");
     expect(process.exitCode).toBe(1);
+  });
+
+  it("clone and archive with a shared slug stop with the list of matches and make no write call (#27)", async () => {
+    const two = () => json({ pipelines: [pl(1, { slug: "dup", project_id: "pA" }), pl(2, { slug: "dup", project_id: "pB" })], total: 2 });
+    const e = errs();
+    apiFetch.mockResolvedValueOnce(two());
+    await clonePipeline("dup");
+    apiFetch.mockResolvedValueOnce(two());
+    await archivePipeline("dup");
+    expect(apiFetch).toHaveBeenCalledTimes(2);   // the two list reads only: no POST clone, no PATCH
+    for (const call of apiFetch.mock.calls) expect(String(call[0])).toMatch(/^\/pipelines\?/);
+    expect(e).toHaveLength(2);
+    expect(e[0]).toContain("nothing was changed");
+    expect(e[1]).toContain("pB");
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("clone --project: the one in that project is cloned (the list is scoped), not the other project's", async () => {
+    apiFetch
+      .mockResolvedValueOnce(json({ pipelines: [pl(2, { slug: "dup", project_id: "pB" })], total: 1 }))
+      .mockResolvedValueOnce(json({ ...pl(2, { slug: "dup", project_id: "pB" }), inputs: [] }))
+      .mockResolvedValueOnce(json({ id: "new1", slug: "dup-copy", name: "Pipeline 2 copy" }));
+    out();
+    await clonePipeline("dup", { project: "pB" });
+    expect(String(apiFetch.mock.calls[0][0])).toContain("projectId=pB");
+    expect(String(apiFetch.mock.calls[2][0])).toBe("/pipelines/id2/clone");
+    expect(process.exitCode).not.toBe(1);
+  });
+
+  it("an id is accepted: it names one pipeline even when its slug is shared", async () => {
+    apiFetch
+      .mockResolvedValueOnce(json({ pipelines: [pl(1, { slug: "dup", project_id: "pA" }), pl(2, { slug: "dup", project_id: "pB" })], total: 2 }))
+      .mockResolvedValueOnce(json({ ...pl(2, { slug: "dup", project_id: "pB" }), inputs: [] }));
+    out();
+    await showPipeline("id2");
+    expect(String(apiFetch.mock.calls[1][0])).toBe("/pipelines/id2");
+    expect(process.exitCode).not.toBe(1);
   });
 
   it("start --project: passes the project as projectId, so the one in that project is found", async () => {
