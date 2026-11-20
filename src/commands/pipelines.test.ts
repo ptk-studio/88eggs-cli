@@ -5,7 +5,7 @@ vi.mock("../lib/api.js", async () => {
   const actual = await vi.importActual<typeof import("../lib/api.js")>("../lib/api.js");
   return { ...actual, apiFetch: (...args: unknown[]) => apiFetch(...args) };
 });
-const { showPipeline, startPipelineRun, clonePipeline, archivePipeline } = await import("./pipelines.js");
+const { showPipeline, startPipelineRun, clonePipeline, archivePipeline, restorePipeline } = await import("./pipelines.js");
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const pl = (n: number, over: Record<string, unknown> = {}) => ({ id: `id${n}`, slug: `slug-${n}`, name: `Pipeline ${n}`, description: "d", project_id: "p1", created_at: "2026-11-19", ...over });
@@ -118,5 +118,46 @@ describe("pipelines: a slug is looked up on every page (#44)", () => {
     expect(String(apiFetch.mock.calls[0][0])).toContain("projectId=pA");
     expect(lines[0]).toBe("Pipeline 1 (dup)");
     expect(process.exitCode).not.toBe(1);
+  });
+});
+
+describe("pipelines restore finds an archived pipeline (#46)", () => {
+  afterEach(() => { apiFetch.mockReset(); vi.restoreAllMocks(); process.exitCode = 0; });
+
+  // The backend lists active pipelines unless ?status=archived; a fake that honours that.
+  const backend = (archived: unknown[], active: unknown[] = []) => (path: string, init?: RequestInit) => {
+    if (path.startsWith("/pipelines?")) {
+      const list = new URLSearchParams(path.split("?")[1]).get("status") === "archived" ? archived : active;
+      return Promise.resolve(json({ pipelines: list, total: list.length, page: 1, limit: 100 }));
+    }
+    if (path === "/pipelines/id7" && !init?.method) return Promise.resolve(json({ ...pl(7), inputs: [] }));
+    if (path === "/pipelines/id7" && init?.method === "PATCH") return Promise.resolve(json({ id: "id7", name: "Pipeline 7" }));
+    throw new Error("unexpected " + path);
+  };
+
+  it("restore finds a slug that only the archived list has, and sets it active", async () => {
+    const lines = out();
+    apiFetch.mockImplementation(backend([pl(7)]));
+    await restorePipeline("slug-7");
+    expect(lines).toEqual(['Restored pipeline "Pipeline 7".']);
+    const patch = apiFetch.mock.calls.find((c) => c[1]?.method === "PATCH")!;
+    expect(JSON.parse(patch[1].body)).toEqual({ status: "active" });
+    expect(apiFetch.mock.calls[0]![0]).toContain("status=archived");
+  });
+
+  it("restore of a slug that is not archived says so and writes nothing", async () => {
+    const e = errs();
+    apiFetch.mockImplementation(backend([], [pl(7)]));
+    await restorePipeline("slug-7");
+    expect(e[0]).toContain('No archived pipeline found with slug "slug-7"');
+    expect(process.exitCode).toBe(1);
+    expect(apiFetch.mock.calls.some((c) => c[1]?.method === "PATCH")).toBe(false);
+  });
+
+  it("archive still looks in the active list only", async () => {
+    out();
+    apiFetch.mockImplementation(backend([], [pl(7)]));
+    await archivePipeline("slug-7");
+    expect(apiFetch.mock.calls[0]![0]).not.toContain("status=");
   });
 });
