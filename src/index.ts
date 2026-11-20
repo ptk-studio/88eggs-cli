@@ -256,9 +256,10 @@ tasks
 
 tasks
   .command("show <slug>")
-  .description("Show one task's detail + parameter spec")
+  .description("Show one task's detail + parameter spec, published flag, external effect, price and outputs")
+  .option("--json", "print the task object the API returns")
   .allowUnknownOption()
-  .action((slug: string) => showTask(slug));
+  .action((slug: string, options: { json?: boolean }) => showTask(slug, options));
 
 tasks
   .command("start <slug>")

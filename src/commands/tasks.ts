@@ -22,6 +22,12 @@ type TaskDetail = TaskSummary & {
   // (88eggs-backend#246, 2026-07-25); `parameters` is read only as a fallback.
   inputs?: TaskParameter[];
   parameters?: TaskParameter[];
+  // GET /tasks/:id also returns these (88eggs-backend src/app/tasks/[taskId]/route.ts).
+  // All optional here: an older backend may not send them.
+  outputs?: unknown;
+  published?: boolean;
+  has_external_effect?: boolean;
+  price_in_credit?: number | null;
 };
 
 type TaskRun = {
@@ -84,14 +90,39 @@ export async function listTasks(): Promise<void> {
   }
 }
 
-export async function showTask(slug: string): Promise<void> {
+// The outputs the task reports, as "name (type)"; the backend stores a list of
+// {name, type, ...} objects, anything else is shown as nothing rather than guessed.
+function outputsText(outputs: unknown): string {
+  if (!Array.isArray(outputs) || outputs.length === 0) {
+    return "none";
+  }
+  return outputs
+    .map((o) => {
+      const item = o as { name?: unknown; type?: unknown };
+      return typeof item?.name === "string" ? `${item.name} (${typeof item.type === "string" ? item.type : "?"})` : "?";
+    })
+    .join(", ");
+}
+
+export async function showTask(slug: string, options: { json?: boolean } = {}): Promise<void> {
   const task = await resolveTaskBySlug(slug);
   if (!task) {
     return;
   }
 
+  // The API's own task object, unchanged, so a reviewer can read published,
+  // has_external_effect, price_in_credit and outputs back after a migration.
+  if (options.json) {
+    console.log(JSON.stringify(task, null, 2));
+    return;
+  }
+
   console.log(`${task.name} (${task.slug})`);
   console.log(task.description);
+  if (task.published !== undefined) console.log(`Published: ${task.published ? "yes" : "no"}`);
+  if (task.has_external_effect !== undefined) console.log(`Has external effect: ${task.has_external_effect ? "yes" : "no"}`);
+  if (task.price_in_credit !== undefined) console.log(`Price: ${task.price_in_credit === null ? "none" : `${task.price_in_credit} credits`}`);
+  if (task.outputs !== undefined) console.log(`Outputs: ${outputsText(task.outputs)}`);
   console.log("Parameters:");
   for (const param of specOf(task)) {
     const required = param.required ? ", required" : "";
