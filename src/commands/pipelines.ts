@@ -68,11 +68,15 @@ type PipelineRunListResponse = {
 async function resolvePipelineBySlug(
   slug: string,
   project?: string,
+  // GET /pipelines answers active ones only unless ?status=archived (88eggs-backend
+  // src/app/pipelines/route.ts), so `restore` has to look in the archived list.
+  status?: "archived",
 ): Promise<PipelineDetail | null> {
   const all: PipelineSummary[] = [];
   for (let page = 1; page <= 50; page++) {
     const q = new URLSearchParams({ limit: "100", page: String(page) });
     if (project) q.set("projectId", project);
+    if (status) q.set("status", status);
     const list = await handleApiResponse<{ pipelines: PipelineSummary[]; total?: number }>(
       apiFetch(`/pipelines?${q}`),
     );
@@ -95,7 +99,7 @@ async function resolvePipelineBySlug(
   }
   const match = matches[0];
   if (!match) {
-    console.error(`Error: No pipeline found with slug "${slug}"${project ? ` in project ${project}` : ""}.`);
+    console.error(`Error: No ${status ? "archived " : ""}pipeline found with slug "${slug}"${project ? ` in project ${project}` : ""}.`);
     process.exitCode = 1;
     return null;
   }
@@ -338,7 +342,8 @@ export async function publishPipeline(
 }
 
 async function setPipelineStatus(slug: string, status: "active" | "archived", project?: string): Promise<void> {
-  const def = await resolvePipelineBySlug(slug, project);
+  // Restoring means the pipeline is archived now, so it is only in the archived list.
+  const def = await resolvePipelineBySlug(slug, project, status === "active" ? "archived" : undefined);
   if (!def) return;
   const updated = await handleApiResponse<{ id: string; name: string }>(
     apiFetch(`/pipelines/${def.id}`, {
